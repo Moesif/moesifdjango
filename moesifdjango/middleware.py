@@ -2,10 +2,13 @@ from __future__ import print_function
 
 import requests
 import threading
+import copy
+import json
 
 from django.conf import settings
 from django.utils import timezone
 from moesifapi.moesif_api_client import *
+from moesifapi.api_helper import *
 from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
@@ -22,9 +25,11 @@ def get_client_ip(request):
 def moesif_middleware(get_response):
     # One-time configuration and initialization.
     middleware_settings = settings.MOESIF_MIDDLEWARE
+    DEBUG = settings.DEBUG
     client = MoesifAPIClient(middleware_settings.get('APPLICATION_ID'))
     # below comment for setting moesif base_uri to a test server.
-    Configuration.BASE_URI = 'http://192.168.0.5:8000/_moesif/api'
+    if middleware_settings.get('LOCAL_DEBUG'):
+        Configuration.BASE_URI = 'http://192.168.0.5:8000/_moesif/api'
     api_version = middleware_settings.get('API_VERSION')
     api_client = client.api
     response_catcher = HttpResponseCatcher()
@@ -35,39 +40,60 @@ def moesif_middleware(get_response):
         # the view (and later middleware) are called.
 
         req_time = timezone.now()
+        raw_request_body = copy.copy(request.body)
+
+        if DEBUG:
+            print("raw body before getting response" + raw_request_body)
 
         response = get_response(request)
         # Code to be executed for each request/response after
         # the view is called.
 
-
         req_headers = {}
-        if request.META is not None:
-            req_headers = request.META.copy()
+        try:
+            req_headers = copy.deepcopy(request.META)
             req_headers = mask_headers(req_headers, middleware_settings.get('REQUEST_HEADER_MASKS'))
+        except:
+            req_headers = {}
+
+        def flatten_to_string(value):
+            if type(value) == str:
+                return value
+            if value is None:
+                return ''
+            return APIHelper.json_serialize(value)
+
+        req_headers = {k: flatten_to_string(v) for k, v in req_headers.items()}
 
         req_body = None
-        if request.body is not None:
+        try:
             # print("about to serialize request body" + request.body)
-            req_body = APIHelper.json_deserialize(request.body)
-            req_body = mask_body(req_body, middleware_settings.get('REQUEST_BODY_MASKS'))
+            if DEBUG:
+                print("about process request body" + raw_request_body)
+            if raw_request_body:
+                req_body = json.loads(raw_request_body)
+                req_body = mask_body(req_body, middleware_settings.get('REQUEST_BODY_MASKS'))
+        except:
+            req_body = {"message": "can not serialize request body=" + str(raw_request_body)}
 
         ip_address = get_client_ip(request)
         uri = request.scheme + "://" + request.get_host() + request.get_full_path()
 
         def mapper(key):
-            return response[key]
+            return copy.deepcopy(response[key])
+
         # a little hacky, using _headers, which is intended as a private variable.
-        rsp_headers = {k: mapper(k) for k, v in response._headers.items()};
+        rsp_headers = {k: mapper(k) for k, v in response._headers.items()}
+
         rsp_headers = mask_headers(rsp_headers, middleware_settings.get('RESPONSE_HEADER_MASKS'))
 
-        print("response headers:")
-        print(rsp_headers);
-
         rsp_body = {}
-        if response.content is not None:
+        try:
             rsp_body = APIHelper.json_deserialize(response.content)
             rsp_body = mask_body(rsp_body, middleware_settings.get('RESPONSE_BODY_MASKS'))
+        except:
+            rsp_body = {"message": "can not serialize response body=" + str(response.content)}
+
 
         rsp_time = timezone.now()
 
@@ -102,13 +128,17 @@ def moesif_middleware(get_response):
                                  session_token=session_token)
 
         def sending_event():
-            print("sending event to moesif")
+            if DEBUG:
+                print("sending event to moesif")
             api_client.create_event(event_model)
-            print("sending finished")
+            if DEBUG:
+                print("sending finished")
 
         # send the event to moesif via background so not blocking
         sending_background_thread = threading.Thread(target=sending_event)
         sending_background_thread.start()
 
         return response
+
+
     return middleware

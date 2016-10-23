@@ -15,8 +15,9 @@ class HttpResponseCatcher(HttpCallBack):
     after a request is executed.
     """
     def on_before_request(self, request):
-        pass;
+        pass
 
     def on_after_response(self, context):
         #self.response = context.response
-        print context.response.status_code
+        #print context.response.status_code
+        pass

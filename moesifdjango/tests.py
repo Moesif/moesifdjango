@@ -20,7 +20,6 @@ MIDDLEWARE_TEST_SETINGS = {
     'RESPONSE_BODY_MASKS': ['body1', 'body2'],
 }
 
-
 class MoesifMiddlewareTest(TestCase):
 
     def setUp(self):
@@ -32,7 +31,7 @@ class MoesifMiddlewareTest(TestCase):
         def get_response(req):
             response_data = {}
             response_data['testing'] = 'basic'
-            response_data['no data'] = 'simplebody'
+            response_data['no_data'] = 'simplebody'
             response = HttpResponse(response_data)
             return response
 
