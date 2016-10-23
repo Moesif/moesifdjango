@@ -50,11 +50,11 @@ MOESIF_MIDDLEWARE = {
 }
 ```
 
-1. `APPLICATION_ID` is obtained via your Moesif Account.
-2. `REQUEST_HEADER_MASKS` is a list of strings for headers that you want to hide from Moesif.
-3. `REQUEST_BODY_MASKS` is a list of key values in the body that you want to hide from Moesif. All key values in the body will be recursively removed before sending to Moesif.
-4. `RESPONSE_HEADER_MASKS` performs the same function for response headers.
-5. `RESPONSE_BODY_MASKS` performs the same task for response body. 
+1. `APPLICATION_ID` (required) is obtained via your Moesif Account, this is required.
+2. `REQUEST_HEADER_MASKS` (optional) is a list of strings for headers that you want to hide from Moesif.
+3. `REQUEST_BODY_MASKS` (optional) is a list of key values in the body that you want to hide from Moesif. All key values in the body will be recursively removed before sending to Moesif.
+4. `RESPONSE_HEADER_MASKS` (optional) performs the same function for response headers.
+5. `RESPONSE_BODY_MASKS` (optional) performs the same task for response body.
 
 How  to test:
 =============
