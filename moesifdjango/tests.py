@@ -19,9 +19,9 @@ MIDDLEWARE_TEST_SETINGS = {
     'RESPONSE_HEADER_MASKS': ['header1', 'header2'],
     'RESPONSE_BODY_MASKS': ['body1', 'body2'],
     'LOCAL_DEBUG': True,
-    'LOCAL_MOESIF_BASEURL': 'http://192.168.0.5:8000/_moesif/api'
 }
 
+#    'LOCAL_MOESIF_BASEURL': 'http://192.168.0.5:8000/_moesif/api'
 # prodution api baseurl is 'https://api.moesif.net'
 
 class MoesifMiddlewareTest(TestCase):
