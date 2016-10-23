@@ -44,7 +44,7 @@ def moesif_middleware(get_response):
         req_headers = {}
         if request.META is not None:
             req_headers = request.META.copy()
-            req_headers = mask_headers)req_headers, middleware_settings.get('REQUEST_HEADER_MASKS')
+            req_headers = mask_headers(req_headers, middleware_settings.get('REQUEST_HEADER_MASKS'))
 
         req_body = None
         if request.body is not None:
@@ -85,13 +85,16 @@ def moesif_middleware(get_response):
                                        body=rsp_body)
 
         username = None
-        if request.user:
-            if request.user.is_authenticated():
-                username = request.user.username
+        try:
+            username = request.user.username
+        except:
+            username = None
 
         session_token = None
-        if request.session:
+        try:
             session_token = request.session.session_key
+        except:
+            session_token = None
 
         event_model = EventModel(request=event_req,
                                  response=event_rsp,
