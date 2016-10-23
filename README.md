@@ -1,9 +1,7 @@
 moesifdjango Middleware for Python Django
 ========================
 
-[Source Code on GitHub](https://github.com/moesif/moesif-django)
-
-This middleware automatically logs api_calls to moesif for analysis and monitoring.
+[Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
 __Check out Moesif's
 [Python developer documentation](https://www.moesif.com/developer-documentation) to learn more__
@@ -18,14 +16,13 @@ pip install moesifdjango
 ```
 
 How to setup:
-===========
+=============
 
 In your `settings.py` file in your Django project directory, please add `moesifdjango.middleware.moesif_middleware`
 to the MIDDLEWARE array.
 
-Because of middleware execution order, it is best to add moesifdjango middleware after SessionMiddleware
-and AuthenticationMiddleware, because those middleware adds very useful data for error analysis. But to capture the entire response data,
-add moesifdjango middleware before any middleware that might modify the response.
+Because of middleware execution order, it is best to add moesifdjango middleware __below__ SessionMiddleware
+and AuthenticationMiddleware, because they add useful session data that enables deeper error analysis. On the other hand, if you have other middleware that modified response before going out, you may choose to place Moesif middleware __above__ the middleware modifying response. This allows Moesif to see the modifications to the response data and see closer to what is going over the wire.
 
 ```
 MIDDLEWARE = [
@@ -33,7 +30,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'moesifdjango.middleware.moesif_middleware',
+    'moesifdjango.middleware.moesif_middleware'
     ...
 ]
 ```
@@ -57,7 +54,7 @@ MOESIF_MIDDLEWARE = {
 5. `RESPONSE_BODY_MASKS` (optional) performs the same task for response body.
 
 How to run the test:
-=============
+====================
 
   1. Manually clone the git repo
   2. Install moesifdjango middleware as in directions above.
