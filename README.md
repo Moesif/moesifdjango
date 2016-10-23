@@ -56,11 +56,8 @@ MOESIF_MIDDLEWARE = {
 4. `RESPONSE_HEADER_MASKS` (optional) performs the same function for response headers.
 5. `RESPONSE_BODY_MASKS` (optional) performs the same task for response body.
 
-How  to test:
+How to run the test:
 =============
-You can test the SDK with automatically generated test
-cases. unittest is used as the testing framework and nose is used as the test
-runner. You can run the tests as follows:
 
   1. Manually clone the git repo
   2. Install moesifdjango middleware as in directions above.
