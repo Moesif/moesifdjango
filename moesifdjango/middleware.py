@@ -25,11 +25,11 @@ def get_client_ip(request):
 def moesif_middleware(get_response):
     # One-time configuration and initialization.
     middleware_settings = settings.MOESIF_MIDDLEWARE
-    DEBUG = settings.DEBUG
+    DEBUG = middleware_settings.get('LOCAL_DEBUG', False)
     client = MoesifAPIClient(middleware_settings.get('APPLICATION_ID'))
     # below comment for setting moesif base_uri to a test server.
-    if middleware_settings.get('LOCAL_DEBUG'):
-        Configuration.BASE_URI = 'http://192.168.0.5:8000/_moesif/api'
+    if middleware_settings.get('LOCAL_DEBUG', False):
+        Configuration.BASE_URI = middleware_settings.get('LOCAL_MOESIF_BASEURL', 'https://api.moesif.net')
     api_version = middleware_settings.get('API_VERSION')
     api_client = client.api
     response_catcher = HttpResponseCatcher()
