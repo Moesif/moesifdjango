@@ -1,4 +1,4 @@
-moesifdjango Middleware for Python Django
+Middleware for Python Django
 ========================
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
