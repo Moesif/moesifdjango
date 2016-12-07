@@ -1,12 +1,12 @@
 Middleware for Python Django
-========================
+============================
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
 __Check out Moesif's
-[Python developer documentation](https://www.moesif.com/developer-documentation) to learn more__
+[Python developer documentation](https://www.moesif.com/developer-documentation/?python) to learn more__
 
-(Documentation access requires an active account)
+This SDK uses the Requests library and will work for Python 2.7 — 3.5.
 
 How to install:
 ===============
