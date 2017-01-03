@@ -35,6 +35,7 @@ def moesif_middleware(get_response):
     response_catcher = HttpResponseCatcher()
     api_client.http_call_back = response_catcher
 
+
     def middleware(request):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
@@ -48,6 +49,15 @@ def moesif_middleware(get_response):
         response = get_response(request)
         # Code to be executed for each request/response after
         # the view is called.
+
+        try:
+            skip_event = middleware_settings.get('SKIP', None)
+            if skip_event is not None:
+                if skip_event(request, response):
+                    return response
+        except:
+            if DEBUG:
+                print("Having difficulty executing skip_event function. Please check moesif settings.")
 
         req_headers = {}
         try:
@@ -116,16 +126,42 @@ def moesif_middleware(get_response):
         except:
             username = None
 
+        try:
+            identify_user = middleware_settings.get('IDENTIFY_USER', None)
+            if identify_user is not None:
+                username = identify_user(request, response)
+        except:
+            if DEBUG:
+                print("can not execute identify_user function, please check moesif settings.")
+
+
         session_token = None
         try:
             session_token = request.session.session_key
         except:
             session_token = None
 
+        try:
+            get_session_token = middleware_settings.get('GET_SESSION_TOKEN', None)
+            if get_session_token is not None:
+                session_token = get_session_token(request, response)
+        except:
+            if DEBUG:
+                print("Can not execute get_session_token function. Please check moesif settings.")
+
+
         event_model = EventModel(request=event_req,
                                  response=event_rsp,
                                  user_id=username,
                                  session_token=session_token)
+
+        try:
+            mask_event_model = middleware_settings.get('MASK_EVENT_MODEL', None)
+            if mask_event_model is not None:
+                event_model = mask_event_model(event_model)
+        except:
+            if DEBUG:
+                print("Can not execute MASK_EVENT_MODEL function. Please check moesif settings.")
 
         def sending_event():
             if DEBUG:

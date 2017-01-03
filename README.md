@@ -44,6 +44,7 @@ MOESIF_MIDDLEWARE = {
     'REQUEST_BODY_MASKS': ['key1', 'key2'],
     'RESPONSE_HEADER_MASKS': ['header1', 'header2'],
     'RESPONSE_BODY_MASKS': ['key1', 'key2'],
+    ...
 }
 ```
 
@@ -52,6 +53,11 @@ MOESIF_MIDDLEWARE = {
 3. `REQUEST_BODY_MASKS` (optional) is a list of key values in the body that you want to hide from Moesif. All key values in the body will be recursively removed before sending to Moesif.
 4. `RESPONSE_HEADER_MASKS` (optional) performs the same function for response headers.
 5. `RESPONSE_BODY_MASKS` (optional) performs the same task for response body.
+6. `SKIP` (optional) a function that takes a request and a response, and returns true if you want to skip this particular event.
+7. `IDENTIFY_USER` (optional) a function that takes a request and a response, and returns a string that is the user id used by your system. While Moesif identify users automatically, and this middleware try to use the standard Django request.user.username, if your set up is very different from the standard implementations, it would be helpful to provide this function.
+8. `GET_SESSION_TOKEN` (optional) a function that takes a request and a response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
+9. `MASK_EVENT_MODEL` (optional) a function that takes an EventModel and returns an EventModel with desired data removed. Use this if you prefer to write your own mask function than use the string based filter options: REQUEST_BODY_MASKS, REQUEST_HEADER_MASKS, RESPONSE_BODY_MASKS, & RESPONSE_HEADER_MASKS. The return value must be a valid EventModel required by Moesif data ingestion API. For details regarding EventModel please see documentation for [moesifapi-python](https://github.com/Moesif/moesifapi-python).
+
 
 How to run the test:
 ====================
