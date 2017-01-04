@@ -84,7 +84,15 @@ def moesif_middleware(get_response):
                 req_body = json.loads(raw_request_body)
                 req_body = mask_body(req_body, middleware_settings.get('REQUEST_BODY_MASKS'))
         except:
-            req_body = {"message": "can not serialize request body=" + str(raw_request_body)}
+            req_body = {
+                "moesif_error": {
+                    "code": "json_parse_error",
+                    "src": "moesifdjango",
+                    "msg": ["Body is not a JSON Object or JSON Array"],
+                    "args": [str(raw_request_body)],
+                }
+            }
+            #"code": "can not serialize request body=" + str(raw_request_body)
 
         ip_address = get_client_ip(request)
         uri = request.scheme + "://" + request.get_host() + request.get_full_path()
@@ -102,8 +110,15 @@ def moesif_middleware(get_response):
             rsp_body = APIHelper.json_deserialize(response.content)
             rsp_body = mask_body(rsp_body, middleware_settings.get('RESPONSE_BODY_MASKS'))
         except:
-            rsp_body = {"message": "can not serialize response body=" + str(response.content)}
-
+            rsp_body = {
+                "moesif_error": {
+                    "code": "json_parse_error",
+                    "src": "moesifdjango",
+                    "msg": ["Body is not a JSON Object or JSON Array"],
+                    "args": [str(response.content)],
+                }
+            }
+            #rsp_body = {"message": "can not serialize response body=" + str(response.content)}
 
         rsp_time = timezone.now()
 
