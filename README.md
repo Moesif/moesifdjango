@@ -1,5 +1,4 @@
-Middleware for Python Django
-============================
+# Middleware for Python Django
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
@@ -8,15 +7,13 @@ __Check out Moesif's
 
 This SDK uses the Requests library and will work for Python 2.7 — 3.5.
 
-How to install:
-===============
+## How to install
 
 ```shell
 pip install moesifdjango
 ```
 
-How to setup:
-=============
+## How to setup
 
 In your `settings.py` file in your Django project directory, please add `moesifdjango.middleware.moesif_middleware`
 to the MIDDLEWARE array.
@@ -59,8 +56,7 @@ MOESIF_MIDDLEWARE = {
 9. `MASK_EVENT_MODEL` (optional) _(EventModel) => EventModel_, a function that takes an EventModel and returns an EventModel with desired data removed. Use this if you prefer to write your own mask function than use the string based filter options: REQUEST_BODY_MASKS, REQUEST_HEADER_MASKS, RESPONSE_BODY_MASKS, & RESPONSE_HEADER_MASKS. The return value must be a valid EventModel required by Moesif data ingestion API. For details regarding EventModel please see documentation for [moesifapi-python](https://github.com/Moesif/moesifapi-python).
 
 
-How to run the test:
-====================
+## How to run the test
 
   1. Manually clone the git repo
   2. Install moesifdjango middleware as in directions above.
