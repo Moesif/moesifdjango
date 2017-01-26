@@ -1,9 +1,8 @@
 # Middleware for Python Django
 
-[Source Code on GitHub](https://github.com/moesif/moesifdjango)
+This is a middleware to integrate Moesif Advanced Error Analysis with APIs that you serve
 
-__Check out Moesif's
-[Python developer documentation](https://www.moesif.com/developer-documentation/?python) to learn more__
+[Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
 This SDK uses the Requests library and will work for Python 2.7 — 3.5.
 
@@ -64,3 +63,12 @@ MOESIF_MIDDLEWARE = {
   2. Install moesifdjango middleware as in directions above.
   2. Copy `test.py` to your local directory for tests.
   3. Invoke `python manage.py test.`
+  
+  
+## Python Moesif Library
+
+If you using Python but not Django, you can use the Moesif Pythong Library. 
+
+__Check out Moesif's
+[Python developer documentation](https://www.moesif.com/developer-documentation/?python) to learn more__
+  
