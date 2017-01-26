@@ -67,7 +67,7 @@ MOESIF_MIDDLEWARE = {
   
 ## Python Moesif Library
 
-If you using Python but not Django, you can use the Moesif Pythong Library. 
+If you using Python but not Django, you can use the Moesif Python Library. 
 
 __Check out Moesif's
 [Python developer documentation](https://www.moesif.com/developer-documentation/?python) to learn more__
