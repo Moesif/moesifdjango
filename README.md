@@ -65,10 +65,6 @@ MOESIF_MIDDLEWARE = {
   3. Invoke `python manage.py test.`
   
   
-## Python Moesif Library
+## Other Integrations
 
-If you using Python but not Django, you can use the Moesif Python Library. 
-
-__Check out Moesif's
-[Python developer documentation](https://www.moesif.com/developer-documentation/?python) to learn more__
-  
+To view more more documenation on integration options, please visit __[the Integration Options Documentation](https://www.moesif.com/docs/getting-started/integration-options/).__ 
