@@ -116,7 +116,7 @@ def moesif_middleware(get_response):
 
             except:
                 if DEBUG:
-                    print("could not json parse, so base64 encode " + response.content)
+                    print("could not json parse, so base64 encode")
                 rsp_body = base64.standard_b64encode(response.content)
                 rsp_body_transfer_encoding = 'base64'
                 if DEBUG:
