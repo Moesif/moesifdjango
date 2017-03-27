@@ -4,6 +4,7 @@ import requests
 import threading
 import copy
 import json
+import base64
 
 from django.conf import settings
 from django.utils import timezone
@@ -76,6 +77,7 @@ def moesif_middleware(get_response):
         req_headers = {k: flatten_to_string(v) for k, v in req_headers.items()}
 
         req_body = None
+        req_body_transfer_encoding = None
         try:
             # print("about to serialize request body" + request.body)
             if DEBUG:
@@ -84,15 +86,10 @@ def moesif_middleware(get_response):
                 req_body = json.loads(raw_request_body)
                 req_body = mask_body(req_body, middleware_settings.get('REQUEST_BODY_MASKS'))
         except:
-            req_body = {
-                "moesif_error": {
-                    "code": "json_parse_error",
-                    "src": "moesifdjango",
-                    "msg": ["Body is not a JSON Object or JSON Array"],
-                    "args": [str(raw_request_body)],
-                }
-            }
-            #"code": "can not serialize request body=" + str(raw_request_body)
+            if raw_request_body:
+                req_body = base64.standard_b64encode(raw_request_body)
+                req_body_transfer_encoding = 'base64'
+
 
         ip_address = get_client_ip(request)
         uri = request.scheme + "://" + request.get_host() + request.get_full_path()
@@ -105,20 +102,26 @@ def moesif_middleware(get_response):
 
         rsp_headers = mask_headers(rsp_headers, middleware_settings.get('RESPONSE_HEADER_MASKS'))
 
-        rsp_body = {}
-        try:
-            rsp_body = APIHelper.json_deserialize(response.content)
-            rsp_body = mask_body(rsp_body, middleware_settings.get('RESPONSE_BODY_MASKS'))
-        except:
-            rsp_body = {
-                "moesif_error": {
-                    "code": "json_parse_error",
-                    "src": "moesifdjango",
-                    "msg": ["Body is not a JSON Object or JSON Array"],
-                    "args": [str(response.content)],
-                }
-            }
-            #rsp_body = {"message": "can not serialize response body=" + str(response.content)}
+        rsp_body = None
+        rsp_body_transfer_encoding = None
+        if DEBUG:
+            print("about to process response")
+            print(response.content)
+        if response.content:
+            try:
+                rsp_body = json.loads(response.content)
+                if DEBUG:
+                    print("jason parsed succesfully")
+                rsp_body = mask_body(rsp_body, middleware_settings.get('RESPONSE_BODY_MASKS'))
+
+            except:
+                if DEBUG:
+                    print("could not json parse, so base64 encode " + response.content)
+                rsp_body = base64.standard_b64encode(response.content)
+                rsp_body_transfer_encoding = 'base64'
+                if DEBUG:
+                    print("base64 encoded body: " + rsp_body)
+
 
         rsp_time = timezone.now()
 
@@ -128,12 +131,14 @@ def moesif_middleware(get_response):
                                       api_version=api_version,
                                       ip_address=ip_address,
                                       headers=req_headers,
-                                      body=req_body)
+                                      body=req_body,
+                                      transfer_encoding=req_body_transfer_encoding)
 
         event_rsp = EventResponseModel(time=req_time.isoformat(),
                                        status=response.status_code,
                                        headers=rsp_headers,
-                                       body=rsp_body)
+                                       body=rsp_body,
+                                       transfer_encoding=rsp_body_transfer_encoding)
 
         username = None
         try:
