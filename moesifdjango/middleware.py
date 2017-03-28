@@ -11,6 +11,7 @@ from django.conf import settings
 from django.utils import timezone
 from moesifapi.moesif_api_client import *
 from moesifapi.api_helper import *
+from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
@@ -207,9 +208,17 @@ def moesif_middleware(get_response):
         def sending_event():
             if DEBUG:
                 print("sending event to moesif")
-            api_client.create_event(event_model)
-            if DEBUG:
-                print("sent done")
+            try:
+                api_client.create_event(event_model)
+                if DEBUG:
+                    print("sent done")
+            except APIException as inst:
+                if 401 <= inst.response_code <= 403:
+                    print("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
+                if DEBUG:
+                    print("Error sending event to Moesif, with status code:")
+                    print(inst.response_code)
+
 
         # send the event to moesif via background so not blocking
         sending_background_thread = threading.Thread(target=sending_event)
