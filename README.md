@@ -36,13 +36,11 @@ MIDDLEWARE = [
 Add `MOESIF_MIDDLEWARE` to your settings file.
 
 ```
+
 MOESIF_MIDDLEWARE = {
     'APPLICATION_ID': 'Your Application ID Found in Settings on Moesif',
-    'REQUEST_HEADER_MASKS': ['header1', 'header2'],
-    'REQUEST_BODY_MASKS': ['key1', 'key2'],
-    'RESPONSE_HEADER_MASKS': ['header1', 'header2'],
-    'RESPONSE_BODY_MASKS': ['key1', 'key2'],
     ...
+    # other options see below.
 }
 ```
 
@@ -76,6 +74,41 @@ You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.co
 
 #### __`RESPONSE_BODY_MASKS`__
 (deprecated), _string[]_, performs the same task for response body. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
+
+### Example:
+
+```python
+def identifyUser(req, res):
+    # if your setup do not use the standard request.user.username
+    # return the user id here
+    return "user_id_1"
+
+def should_skip(req, res):
+    if "healthprobe" in req.path:
+        return True
+    else:
+        return False
+
+def get_token(req, res):
+    # if your setup do not use the standard Django method for
+    # setting session tokens. do it here.
+    return "token"
+
+def mask_event(eventmodel):
+    # do something to remove sensitive fields
+    # be sure not to remove any required fields.
+    return eventmodel
+
+MOESIF_MIDDLEWARE = {
+    'APPLICATION_ID': 'Your application id',
+    'LOCAL_DEBUG': False,
+    'IDENTIFY_USER': identifyUser,
+    'GET_SESSION_TOKEN': get_token,
+    'SKIP': should_skip,
+    'MASK_EVENT_MODEL': mask_event,
+}
+
+```
 
 ## How to run tests
 
