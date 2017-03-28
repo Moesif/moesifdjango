@@ -5,6 +5,7 @@ import threading
 import copy
 import json
 import base64
+import re
 
 from django.conf import settings
 from django.utils import timezone
@@ -35,6 +36,9 @@ def moesif_middleware(get_response):
     api_client = client.api
     response_catcher = HttpResponseCatcher()
     api_client.http_call_back = response_catcher
+    regex_http_          = re.compile(r'^HTTP_.+$')
+    regex_content_type   = re.compile(r'^CONTENT_TYPE$')
+    regex_content_length = re.compile(r'^CONTENT_LENGTH$')
 
 
     def middleware(request):
@@ -61,11 +65,28 @@ def moesif_middleware(get_response):
                 print("Having difficulty executing skip_event function. Please check moesif settings.")
 
         req_headers = {}
+        regex_http_start = re.compile('^HTTP_')
         try:
-            req_headers = copy.deepcopy(request.META)
+            for header in request.META:
+                if regex_http_.match(header) or regex_content_type.match(header) or regex_content_length.match(header):
+                    normalized_header = regex_http_start.sub('', header)
+                    normalized_header = normalized_header.replace('_', '-')
+                    req_headers[normalized_header] = request.META[header]
             req_headers = mask_headers(req_headers, middleware_settings.get('REQUEST_HEADER_MASKS'))
-        except:
+        except Exception as inst:
+            if DEBUG:
+                print("error encountered while copying request header")
+                print(inst)
             req_headers = {}
+
+        if DEBUG:
+            print("about to print what is in meta %d " % len(request.META))
+            for x in request.META:
+                print (x, ':', request.META[x])
+            print("about to print headers %d " % len(req_headers))
+            for x in req_headers:
+                print (x, ':', req_headers[x])
+
 
         def flatten_to_string(value):
             if type(value) == str:
@@ -81,7 +102,7 @@ def moesif_middleware(get_response):
         try:
             # print("about to serialize request body" + request.body)
             if DEBUG:
-                print("about process request body" + raw_request_body)
+                print("about to process request body" + raw_request_body)
             if raw_request_body:
                 req_body = json.loads(raw_request_body)
                 req_body = mask_body(req_body, middleware_settings.get('REQUEST_BODY_MASKS'))
@@ -188,7 +209,7 @@ def moesif_middleware(get_response):
                 print("sending event to moesif")
             api_client.create_event(event_model)
             if DEBUG:
-                print("sending finished")
+                print("sent done")
 
         # send the event to moesif via background so not blocking
         sending_background_thread = threading.Thread(target=sending_event)
