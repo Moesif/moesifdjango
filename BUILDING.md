@@ -15,7 +15,7 @@ if needed set up virtual env first.
 https://virtualenv.pypa.io/en/stable/
 
 ```bash
-virtual ENV
+virtualenv ENV
 ```
 
 ```bash
