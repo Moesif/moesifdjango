@@ -44,13 +44,13 @@ class MoesifMiddlewarePre19(object):
         self.regex_content_length = re.compile(r'^CONTENT_LENGTH$')
 
     def process_request(self, request):
-        self.req_time = timezone.now()
+        request.moesif_req_time = timezone.now()
 
     def process_response(self, request, response):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
 
-        req_time = self.req_time
+        req_time = request.moesif_req_time
         raw_request_body = copy.copy(request.body)
 
         if self.DEBUG:
