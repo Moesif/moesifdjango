@@ -125,13 +125,10 @@ MOESIF_MIDDLEWARE = {
 
 ```
 
-## How to run tests
+## Example
 
-  1. Manually clone the git repo
-  2. Install moesifdjango middleware as in directions above.
-  2. Copy `test.py` to your local directory for tests.
-  3. Invoke `python manage.py test.`
-
+An example Moesif integration based on quick start tutorials of Django and Django Rest Framework:
+[Moesif Django Example](https://github.com/Moesif/moesifdjangoexample)
 
 ## Other integrations
 
