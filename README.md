@@ -75,6 +75,11 @@ You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.co
 #### __`GET_SESSION_TOKEN`__
 (optional) _(request, response) => string_, a function that takes a request and a response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
 
+
+#### __`GET_METADATA`__
+(optional) _(request, response) => dictionary_, getMetadata is a function that returns an object that allows you
+to add custom metadata that will be associated with the event. The metadata must be a dictionary that can be converted to JSON. For example, you may want to save a VM instance_id, a trace_id, or a tenant_id with the request.
+
 #### __`MASK_EVENT_MODEL`__
 (optional) _(EventModel) => EventModel_, a function that takes an EventModel and returns an EventModel with desired data removed. Use this if you prefer to write your own mask function than use the string based filter options: REQUEST_BODY_MASKS, REQUEST_HEADER_MASKS, RESPONSE_BODY_MASKS, & RESPONSE_HEADER_MASKS. The return value must be a valid EventModel required by Moesif data ingestion API. For details regarding EventModel please see the [Moesif Python API Documentation](https://www.moesif.com/docs/api?python).
 
@@ -114,6 +119,13 @@ def mask_event(eventmodel):
     # be sure not to remove any required fields.
     return eventmodel
 
+def get_metadata(req, res):
+    return {
+        'foo': '12345',
+        'bar': '23456',
+    }
+
+
 MOESIF_MIDDLEWARE = {
     'APPLICATION_ID': 'Your application id',
     'LOCAL_DEBUG': False,
@@ -121,6 +133,7 @@ MOESIF_MIDDLEWARE = {
     'GET_SESSION_TOKEN': get_token,
     'SKIP': should_skip,
     'MASK_EVENT_MODEL': mask_event,
+    'GET_METADATA': get_metadata,
 }
 
 ```

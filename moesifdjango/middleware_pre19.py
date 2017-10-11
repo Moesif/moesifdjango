@@ -174,6 +174,15 @@ class MoesifMiddlewarePre19(object):
             if self.DEBUG:
                 print("can not execute identify_user function, please check moesif settings.")
 
+        metadata = None
+        try:
+            get_metadata = middleware_settings.get('GET_METADATA', None)
+            if get_metadata is not None:
+                metadata = get_metadata(request, response)
+        except:
+            if DEBUG:
+                print("can not execute get_metadata function, please check moesif settings.")
+
 
         session_token = None
         try:
@@ -193,7 +202,8 @@ class MoesifMiddlewarePre19(object):
         event_model = EventModel(request=event_req,
                                  response=event_rsp,
                                  user_id=username,
-                                 session_token=session_token)
+                                 session_token=session_token
+                                 metadata=metadata)
 
         try:
             mask_event_model = self.middleware_settings.get('MASK_EVENT_MODEL', None)
