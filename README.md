@@ -22,9 +22,16 @@ to the MIDDLEWARE array.
 Because of middleware execution order, it is best to add moesifdjango middleware __below__ SessionMiddleware
 and AuthenticationMiddleware, because they add useful session data that enables deeper error analysis. On the other hand, if you have other middleware that modified response before going out, you may choose to place Moesif middleware __above__ the middleware modifying response. This allows Moesif to see the modifications to the response data and see closer to what is going over the wire.
 
-Django middleware style and setup changed drastically from version 1.10.
+### Changes in Django 1.10
 
-For __Django 1.10 or newer__, the please add Middleware this way:
+Django middleware style and setup was refactored in version 1.10. You need need to import the correct version of Moesif middleware depending on your Django version. Most users on Django 1.10 or greater will use `moesifdjango.middleware.moesif_middleware`. However, if you're using Django 1.9 or older, you need to follow the old style for importing middleware and use `moesifdjango.middleware_pre19.MoesifMiddlewarePre19` instead.
+
+You can find your current Django version via `python -c "import django; print(django.get_version())"`
+{: .notice--info}
+
+### Django 1.10 or newer
+
+Add the middleware to your application:
 
 ```
 MIDDLEWARE = [
@@ -37,7 +44,9 @@ MIDDLEWARE = [
 ]
 ```
 
-For __Django 1.9 or older__, please add Middleware this way:
+### Django 1.9 or older
+
+Add the middleware to your application:
 
 ```
 MIDDLEWARE_CLASSES = [
