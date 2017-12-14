@@ -6,6 +6,7 @@ import copy
 import json
 import base64
 import re
+import django
 
 from django.conf import settings
 from django.utils import timezone
@@ -25,7 +26,7 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-def moesif_middleware(get_response):
+def moesif_middleware(*args):
     # One-time configuration and initialization.
     middleware_settings = settings.MOESIF_MIDDLEWARE
     DEBUG = middleware_settings.get('LOCAL_DEBUG', False)
@@ -52,7 +53,15 @@ def moesif_middleware(get_response):
         if DEBUG:
             print("raw body before getting response" + raw_request_body)
 
-        response = get_response(request)
+        if (len(args) < 1):
+             print("""
+             Looks like you're using Django version """ + django.get_version() + """ .
+             You need to use the older version of Moesif middleware.
+             See https://www.moesif.com/docs/server-integration/django/#changes-in-django-110
+             """)
+             return None
+
+         response = args[0](request)
         # Code to be executed for each request/response after
         # the view is called.
 
