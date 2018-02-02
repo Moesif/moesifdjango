@@ -61,7 +61,7 @@ def moesif_middleware(*args):
              """)
              return None
 
-         response = args[0](request)
+        response = args[0](request)
         # Code to be executed for each request/response after
         # the view is called.
 
