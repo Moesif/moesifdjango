@@ -24,7 +24,7 @@ and AuthenticationMiddleware, because they add useful session data that enables 
 
 ### Changes in Django 1.10
 
-Django middleware style and setup was refactored in version 1.10. You need need to import the correct version of Moesif middleware depending on your Django version. Most users on Django 1.10 or greater will use `moesifdjango.middleware.moesif_middleware`. However, if you're using Django 1.9 or older, you need to follow the old style for importing middleware and use `moesifdjango.middleware_pre19.MoesifMiddlewarePre19` instead.
+Django middleware style and setup was refactored in version 1.10. You need need to import the correct version of Moesif middleware depending on your Django version. If you're using Django 1.10 or greater, use `moesifdjango.middleware.moesif_middleware`. However, if you're using Django 1.9 or older, you need to follow the legacy style for importing middleware and use `moesifdjango.middleware_pre19.MoesifMiddlewarePre19` instead.
 
 You can find your current Django version via `python -c "import django; print(django.get_version())"`
 {: .notice--info}
@@ -32,6 +32,10 @@ You can find your current Django version via `python -c "import django; print(dj
 ### Django 1.10 or newer
 
 Add the middleware to your application:
+
+Django 1.10 renamed `MIDDLEWARE_CLASSES` to `MIDDLEWARE.` If you're using 1.10 or newer and still using the legacy MIDDLEWARE_CLASSES,
+the Moesif middleware will not run.
+{: .notice--danger}
 
 ```
 MIDDLEWARE = [
@@ -91,6 +95,9 @@ to add custom metadata that will be associated with the event. The metadata must
 
 #### __`MASK_EVENT_MODEL`__
 (optional) _(EventModel) => EventModel_, a function that takes an EventModel and returns an EventModel with desired data removed. Use this if you prefer to write your own mask function than use the string based filter options: REQUEST_BODY_MASKS, REQUEST_HEADER_MASKS, RESPONSE_BODY_MASKS, & RESPONSE_HEADER_MASKS. The return value must be a valid EventModel required by Moesif data ingestion API. For details regarding EventModel please see the [Moesif Python API Documentation](https://www.moesif.com/docs/api?python).
+
+#### __`LOCAL_DEBUG`__
+_boolean_, set to True to print internal log messages for debugging SDK integration issues.
 
 #### __`REQUEST_HEADER_MASKS`__
 (deprecated), _string[]_, is a list of strings for headers that you want to hide from Moesif. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
