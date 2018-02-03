@@ -45,13 +45,14 @@ class MoesifMiddlewarePre19(object):
 
     def process_request(self, request):
         request.moesif_req_time = timezone.now()
+        request._body = request.body
 
     def process_response(self, request, response):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
 
         req_time = request.moesif_req_time
-        raw_request_body = copy.copy(request.body)
+        raw_request_body = request._body
 
         if self.DEBUG:
             print("raw body before getting response" + raw_request_body)
@@ -180,7 +181,7 @@ class MoesifMiddlewarePre19(object):
             if get_metadata is not None:
                 metadata = get_metadata(request, response)
         except:
-            if DEBUG:
+            if self.DEBUG:
                 print("can not execute get_metadata function, please check moesif settings.")
 
 
@@ -202,7 +203,7 @@ class MoesifMiddlewarePre19(object):
         event_model = EventModel(request=event_req,
                                  response=event_rsp,
                                  user_id=username,
-                                 session_token=session_token
+                                 session_token=session_token,
                                  metadata=metadata)
 
         try:
