@@ -165,10 +165,8 @@ $RECYCLE.BIN/
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
 # User-specific stuff:
-.idea/workspace.xml
-.idea/tasks.xml
+=.idea/tasks.xml
 .idea/dictionaries
-.idea/vcs.xml
 .idea/jsLibraryMappings.xml
 
 # Sensitive or high-churn files:
@@ -213,8 +211,4 @@ fabric.properties
 # modules.xml
 # .idea/misc.xml
 # *.ipr
-.idea/inspectionProfiles/
-.idea/misc.xml
-.idea/modules.xml
-.idea/moesifdjango.iml
-.idea/vagrant.xml
+.idea/
