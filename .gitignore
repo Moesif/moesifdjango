@@ -213,3 +213,8 @@ fabric.properties
 # modules.xml
 # .idea/misc.xml
 # *.ipr
+.idea/inspectionProfiles/
+.idea/misc.xml
+.idea/modules.xml
+.idea/moesifdjango.iml
+.idea/vagrant.xml

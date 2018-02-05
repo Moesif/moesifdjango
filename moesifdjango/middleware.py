@@ -18,6 +18,17 @@ from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import *
 
+from moesifdjango.tasks import async_client_create_event
+
+CELERY = False
+
+try:
+    import celery
+    CELERY = True
+except:
+    CELERY = False
+
+
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -229,7 +240,10 @@ def moesif_middleware(*args):
             if DEBUG:
                 print("sending event to moesif")
             try:
-                api_client.create_event(event_model)
+                if not CELERY:
+                    api_client.create_event(event_model)
+                else:
+                    async_client_create_event.delay(api_client,event_model)
                 if DEBUG:
                     print("sent done")
             except APIException as inst:
