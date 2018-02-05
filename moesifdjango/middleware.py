@@ -165,7 +165,7 @@ def moesif_middleware(*args):
                                       body=req_body,
                                       transfer_encoding=req_body_transfer_encoding)
 
-        event_rsp = EventResponseModel(time=req_time.isoformat(),
+        event_rsp = EventResponseModel(time=rsp_time.isoformat(),
                                        status=response.status_code,
                                        headers=rsp_headers,
                                        body=rsp_body,
