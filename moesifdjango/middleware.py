@@ -24,6 +24,7 @@ CELERY = False
 
 try:
     import celery
+
     CELERY = True
 except:
     CELERY = False
@@ -37,6 +38,7 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
+
 def moesif_middleware(*args):
     # One-time configuration and initialization.
     middleware_settings = settings.MOESIF_MIDDLEWARE
@@ -49,10 +51,9 @@ def moesif_middleware(*args):
     api_client = client.api
     response_catcher = HttpResponseCatcher()
     api_client.http_call_back = response_catcher
-    regex_http_          = re.compile(r'^HTTP_.+$')
-    regex_content_type   = re.compile(r'^CONTENT_TYPE$')
+    regex_http_ = re.compile(r'^HTTP_.+$')
+    regex_content_type = re.compile(r'^CONTENT_TYPE$')
     regex_content_length = re.compile(r'^CONTENT_LENGTH$')
-
 
     def middleware(request):
         # Code to be executed for each request before
@@ -65,12 +66,12 @@ def moesif_middleware(*args):
             print("raw body before getting response" + raw_request_body)
 
         if (len(args) < 1):
-             print("""
+            print("""
              Looks like you're using Django version """ + django.get_version() + """ .
              You need to use the older version of Moesif middleware.
              See https://www.moesif.com/docs/server-integration/django/#changes-in-django-110
              """)
-             return None
+            return None
 
         response = args[0](request)
         # Code to be executed for each request/response after
@@ -103,11 +104,10 @@ def moesif_middleware(*args):
         if DEBUG:
             print("about to print what is in meta %d " % len(request.META))
             for x in request.META:
-                print (x, ':', request.META[x])
+                print(x, ':', request.META[x])
             print("about to print headers %d " % len(req_headers))
             for x in req_headers:
-                print (x, ':', req_headers[x])
-
+                print(x, ':', req_headers[x])
 
         def flatten_to_string(value):
             if type(value) == str:
@@ -131,7 +131,6 @@ def moesif_middleware(*args):
             if raw_request_body:
                 req_body = base64.standard_b64encode(raw_request_body)
                 req_body_transfer_encoding = 'base64'
-
 
         ip_address = get_client_ip(request)
         uri = request.scheme + "://" + request.get_host() + request.get_full_path()
@@ -163,7 +162,6 @@ def moesif_middleware(*args):
                 rsp_body_transfer_encoding = 'base64'
                 if DEBUG:
                     print("base64 encoded body: " + rsp_body)
-
 
         rsp_time = timezone.now()
 
@@ -205,8 +203,6 @@ def moesif_middleware(*args):
             if DEBUG:
                 print("can not execute get_metadata function, please check moesif settings.")
 
-
-
         session_token = None
         try:
             session_token = request.session.session_key
@@ -220,7 +216,6 @@ def moesif_middleware(*args):
         except:
             if DEBUG:
                 print("Can not execute get_session_token function. Please check moesif settings.")
-
 
         event_model = EventModel(request=event_req,
                                  response=event_rsp,
@@ -243,7 +238,7 @@ def moesif_middleware(*args):
                 if not CELERY:
                     api_client.create_event(event_model)
                 else:
-                    async_client_create_event.delay(api_client,event_model)
+                    async_client_create_event.delay(event_model.to_dictionary())
                 if DEBUG:
                     print("sent done")
             except APIException as inst:
@@ -253,12 +248,13 @@ def moesif_middleware(*args):
                     print("Error sending event to Moesif, with status code:")
                     print(inst.response_code)
 
-
-        # send the event to moesif via background so not blocking
-        sending_background_thread = threading.Thread(target=sending_event)
-        sending_background_thread.start()
+        if CELERY:
+            sending_event()
+        else:
+            # send the event to moesif via background so not blocking
+            sending_background_thread = threading.Thread(target=sending_event)
+            sending_background_thread.start()
 
         return response
-
 
     return middleware
