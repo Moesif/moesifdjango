@@ -1,13 +1,14 @@
+"""
 __author__ = 'mpetyx (Michael Petychakis)'
 __version__ = "1.0.0"
 __maintainer__ = "Michael Petychakis"
 __email__ = "michael@orfium.com"
 __status__ = "Production"
+"""
 
+from __future__ import absolute_import, unicode_literals
 from django.conf import settings
-
 from .http_response_catcher import HttpResponseCatcher
-
 from celery import shared_task
 from moesifapi.moesif_api_client import MoesifAPIClient
 from moesifapi.models import EventModel

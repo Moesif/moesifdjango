@@ -100,6 +100,9 @@ to add custom metadata that will be associated with the event. The metadata must
 #### __`LOCAL_DEBUG`__
 _boolean_, set to True to print internal log messages for debugging SDK integration issues.
 
+#### __`USE_CELERY`__
+_boolean_, Default False. Set to True to use Celery for queuing sending data to Moesif. Check out [Celery documentation](http://docs.celeryproject.org) for more info.
+
 #### __`REQUEST_HEADER_MASKS`__
 (deprecated), _string[]_, is a list of strings for headers that you want to hide from Moesif. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
 
@@ -151,6 +154,7 @@ MOESIF_MIDDLEWARE = {
     'SKIP': should_skip,
     'MASK_EVENT_MODEL': mask_event,
     'GET_METADATA': get_metadata,
+    'USE_CELERY': False
 }
 
 ```
