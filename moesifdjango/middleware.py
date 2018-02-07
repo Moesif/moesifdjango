@@ -34,6 +34,18 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
         CELERY = False
 
 
+from moesifdjango.tasks import async_client_create_event
+
+CELERY = False
+
+try:
+    import celery
+
+    CELERY = True
+except:
+    CELERY = False
+
+
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
