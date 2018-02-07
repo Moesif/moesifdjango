@@ -18,6 +18,7 @@ pip install moesifdjango
 
 In your `settings.py` file in your Django project directory, please add `moesifdjango.middleware.moesif_middleware`
 to the MIDDLEWARE array.
+If you plan to use celery as the backend of asynchronous delivered logged requests, you also need to add `moesifdjango` to your `INSTALLED_APPS`.
 
 Because of middleware execution order, it is best to add moesifdjango middleware __below__ SessionMiddleware
 and AuthenticationMiddleware, because they add useful session data that enables deeper error analysis. On the other hand, if you have other middleware that modified response before going out, you may choose to place Moesif middleware __above__ the middleware modifying response. This allows Moesif to see the modifications to the response data and see closer to what is going over the wire.
