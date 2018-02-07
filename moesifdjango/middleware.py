@@ -17,17 +17,21 @@ from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import *
+import logging
 
-from moesifdjango.tasks import async_client_create_event
+# Logger Config
+logging.basicConfig()
+logger = logging.getLogger('logger')
 
 CELERY = False
-
-try:
-    import celery
-
-    CELERY = True
-except:
-    CELERY = False
+if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
+    try:
+        import celery
+        from .tasks import async_client_create_event
+        CELERY = True
+    except:
+        logger.warning("USE_CELERY flag was set to TRUE, but celery package not found.")
+        CELERY = False
 
 
 def get_client_ip(request):
@@ -152,7 +156,7 @@ def moesif_middleware(*args):
             try:
                 rsp_body = json.loads(response.content)
                 if DEBUG:
-                    print("jason parsed succesfully")
+                    print("json parsed succesfully")
                 rsp_body = mask_body(rsp_body, middleware_settings.get('RESPONSE_BODY_MASKS'))
 
             except:
