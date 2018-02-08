@@ -7,6 +7,7 @@ import json
 import base64
 import re
 import django
+import logging
 
 from django.conf import settings
 from django.utils import timezone
@@ -17,7 +18,7 @@ from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import *
-import logging
+from io import BytesIO
 
 # Logger Config
 logging.basicConfig()
@@ -41,7 +42,6 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-
 def moesif_middleware(*args):
     # One-time configuration and initialization.
     middleware_settings = settings.MOESIF_MIDDLEWARE
@@ -63,10 +63,16 @@ def moesif_middleware(*args):
         # the view (and later middleware) are called.
 
         req_time = timezone.now()
-        raw_request_body = copy.copy(request.body)
+
+        if not request.content_type.startswith('multipart/form-data'):
+            request._mo_body = request.body
+            request._stream = BytesIO(request.body)
+            request._read_started = False
+        else:
+            request._mo_body = None
 
         if DEBUG:
-            print("raw body before getting response" + raw_request_body)
+            print("raw body before getting response")
 
         if (len(args) < 1):
             print("""
@@ -126,13 +132,13 @@ def moesif_middleware(*args):
         try:
             # print("about to serialize request body" + request.body)
             if DEBUG:
-                print("about to process request body" + raw_request_body)
-            if raw_request_body:
-                req_body = json.loads(raw_request_body)
+                print("about to process request body")
+            if request._mo_body:
+                req_body = json.loads(request._mo_body)
                 req_body = mask_body(req_body, middleware_settings.get('REQUEST_BODY_MASKS'))
         except:
-            if raw_request_body:
-                req_body = base64.standard_b64encode(raw_request_body)
+            if request._mo_body:
+                req_body = base64.standard_b64encode(request._mo_body)
                 req_body_transfer_encoding = 'base64'
 
         ip_address = get_client_ip(request)
