@@ -16,6 +16,7 @@ from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import *
+from io import BytesIO
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -45,17 +46,21 @@ class MoesifMiddlewarePre19(object):
 
     def process_request(self, request):
         request.moesif_req_time = timezone.now()
-        request._body = request.body
+        if not request.content_type.startswith('multipart/form-data'):
+            request._mo_body = request.body
+            request._stream = BytesIO(request.body)
+            request._read_started = False
+        else:
+            request._mo_body = None
 
     def process_response(self, request, response):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
 
         req_time = request.moesif_req_time
-        raw_request_body = request._body
 
         if self.DEBUG:
-            print("raw body before getting response" + raw_request_body)
+            print("raw body before getting response")
 
         # response = get_response(request)
         # Code to be executed for each request/response after
@@ -107,12 +112,12 @@ class MoesifMiddlewarePre19(object):
         try:
             # print("about to serialize request body" + request.body)
             if self.DEBUG:
-                print("about to process request body" + raw_request_body)
-            if raw_request_body:
-                req_body = json.loads(raw_request_body)
+                print("about to process request body")
+            if request._mo_body:
+                req_body = json.loads(request._mo_body)
         except:
-            if raw_request_body:
-                req_body = base64.standard_b64encode(raw_request_body)
+            if request._mo_body:
+                req_body = base64.standard_b64encode(request._mo_body)
                 req_body_transfer_encoding = 'base64'
 
 
@@ -155,7 +160,7 @@ class MoesifMiddlewarePre19(object):
                                       body=req_body,
                                       transfer_encoding=req_body_transfer_encoding)
 
-        event_rsp = EventResponseModel(time=req_time.isoformat(),
+        event_rsp = EventResponseModel(time=rsp_time.isoformat(),
                                        status=response.status_code,
                                        headers=rsp_headers,
                                        body=rsp_body,
@@ -177,7 +182,7 @@ class MoesifMiddlewarePre19(object):
 
         metadata = None
         try:
-            get_metadata = middleware_settings.get('GET_METADATA', None)
+            get_metadata = self.middleware_settings.get('GET_METADATA', None)
             if get_metadata is not None:
                 metadata = get_metadata(request, response)
         except:
