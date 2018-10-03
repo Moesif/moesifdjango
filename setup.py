@@ -28,13 +28,13 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.3.2',
+    version='1.3.3',
 
     description='Moesif Middleware for Python Django',
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://www.moesif.com/developer-documentation',
+    url='https://www.moesif.com/docs/server-integration/django/',
 
     # Author details
     author='Moesif, Inc',
