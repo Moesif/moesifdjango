@@ -115,6 +115,19 @@ _boolean_, Default False. Set to True to use Celery for queuing sending data to 
 #### __`RESPONSE_BODY_MASKS`__
 (deprecated), _string[]_, performs the same task for response body. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
 
+#### __`CAPTURE_OUTGOING_REQUESTS`__
+_boolean_, Default False. Set to True to capture all outgoing API calls from your app to third parties like Stripe or to your own dependencies when using [Requests](http://docs.python-requests.org/en/master/) library. The same set of above options is also applied to outgoing API calls, with a few key differences:
+When the request is outgoing, for options functions that take request and response as input arguments, the request and response objects passed in are not Django request or response objects, but Moesif does mock some of the fields for convenience. Only a subset of the Django request/response fields are available. Specifically:
+
+mo_mocked: Set to true if it is a mocked request or response object (i.e. outgoing API Call)
+META: dictionary, a mapping of request header names to header values. Case sensitive
+url: string. Full request URL.
+method: string. Method/verb such as GET or POST.
+path: string. Full path to the requested page, not including the scheme or domain.
+body: JSON object. The request body as sent to Moesif
+statusCode: number. Response HTTP status code
+content: JSON object. The response body as sent to Moesif
+
 ### Example:
 
 ```python
