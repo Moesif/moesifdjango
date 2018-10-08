@@ -116,17 +116,24 @@ _boolean_, Default False. Set to True to use Celery for queuing sending data to 
 (deprecated), _string[]_, performs the same task for response body. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
 
 #### __`CAPTURE_OUTGOING_REQUESTS`__
-_boolean_, Default False. Set to True to capture all outgoing API calls from your app to third parties like Stripe or to your own dependencies when using [Requests](http://docs.python-requests.org/en/master/) library. The same set of above options is also applied to outgoing API calls, with a few key differences:
-When the request is outgoing, for options functions that take request and response as input arguments, the request and response objects passed in are not Django request or response objects, but Moesif does mock some of the fields for convenience. Only a subset of the Django request/response fields are available. Specifically:
+_boolean_, Default False. Set to True to capture all outgoing API calls from your app to third parties like Stripe or to your own dependencies while using [Requests](http://docs.python-requests.org/en/master/) library. The options below is applied to outgoing API calls.
+When the request is outgoing, for options functions that take request and response as input arguments, the request and response objects passed in are [Requests](http://docs.python-requests.org/en/master/api/) request or response objects.
 
-mo_mocked: Set to true if it is a mocked request or response object (i.e. outgoing API Call)
-META: dictionary, a mapping of request header names to header values. Case sensitive
-url: string. Full request URL.
-method: string. Method/verb such as GET or POST.
-path: string. Full path to the requested page, not including the scheme or domain.
-body: JSON object. The request body as sent to Moesif
-statusCode: number. Response HTTP status code
-content: JSON object. The response body as sent to Moesif
+##### __`SKIP_OUTGOING`__
+(optional) _(req, res) => boolean_, a function that takes a [Requests](http://docs.python-requests.org/en/master/api/) request and response,
+and returns true if you want to skip this particular event.
+
+##### __`IDENTIFY_USER_OUTGOING`__
+(optional, but highly recommended) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the user id used by your system. While Moesif tries to identify users automatically,
+but different frameworks and your implementation might be very different, it would be helpful and much more accurate to provide this function.
+
+##### __`GET_METADATA_OUTGOING`__
+(optional) _(req, res) => dictionary_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and
+returns a dictionary (must be able to be encoded into JSON). This allows
+to associate this event with custom metadata. For example, you may want to save a VM instance_id, a trace_id, or a tenant_id with the request.
+
+##### __`GET_SESSION_TOKEN_OUTGOING`__
+(optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
 
 ### Example:
 
