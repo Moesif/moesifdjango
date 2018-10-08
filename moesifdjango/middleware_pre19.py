@@ -55,14 +55,11 @@ class MoesifMiddlewarePre19(object):
 
     def process_request(self, request):
         request.moesif_req_time = timezone.now()
-        try:
-            if not request.content_type.startswith('multipart/form-data'):
-                request._mo_body = request.body
-                request._stream = BytesIO(request.body)
-                request._read_started = False
-            else:
-                request._mo_body = None
-        except:
+        if request.META.get('CONTENT_TYPE', None) and not request.META.get('CONTENT_TYPE').startswith('multipart/form-data'):
+            request._mo_body = request.body
+            request._stream = BytesIO(request.body)
+            request._read_started = False
+        else:
             request._mo_body = None
 
     def process_response(self, request, response):
