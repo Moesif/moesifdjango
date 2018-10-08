@@ -1,6 +1,6 @@
 # Moesif Middleware for Python Django
 
-Django middleware to log _incoming_ REST API calls to Moesif's error analysis platform.
+Django middleware to capture _incoming_ or _outgoing_ API calls and send to the Moesif API Analytics platform.
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
