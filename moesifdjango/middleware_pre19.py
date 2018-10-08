@@ -17,6 +17,7 @@ from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import *
 from io import BytesIO
+from moesifpythonrequest.start_capture.start_capture import StartCapture
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -36,6 +37,14 @@ class MoesifMiddlewarePre19(object):
         # below comment for setting moesif base_uri to a test server.
         if self.middleware_settings.get('LOCAL_DEBUG', False):
             Configuration.BASE_URI = self.middleware_settings.get('LOCAL_MOESIF_BASEURL', 'https://api.moesif.net')
+        if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
+            try:
+                if self.DEBUG:
+                    print('Start capturing outgoing requests')
+                # Start capturing outgoing requests
+                StartCapture().start_capture_outgoing(settings.MOESIF_MIDDLEWARE)
+            except:
+                print('Error while starting to capture the outgoing events')
         self.api_version = self.middleware_settings.get('API_VERSION')
         self.api_client = self.client.api
         response_catcher = HttpResponseCatcher()
@@ -46,7 +55,7 @@ class MoesifMiddlewarePre19(object):
 
     def process_request(self, request):
         request.moesif_req_time = timezone.now()
-        if not request.content_type.startswith('multipart/form-data'):
+        if request.META.get('CONTENT_TYPE', None) and not request.META.get('CONTENT_TYPE').startswith('multipart/form-data'):
             request._mo_body = request.body
             request._stream = BytesIO(request.body)
             request._read_started = False

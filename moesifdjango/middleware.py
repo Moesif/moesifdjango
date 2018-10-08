@@ -19,6 +19,7 @@ from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import *
 from io import BytesIO
+from moesifpythonrequest.start_capture.start_capture import StartCapture
 
 # Logger Config
 logging.basicConfig()
@@ -50,6 +51,14 @@ def moesif_middleware(*args):
     # below comment for setting moesif base_uri to a test server.
     if middleware_settings.get('LOCAL_DEBUG', False):
         Configuration.BASE_URI = middleware_settings.get('LOCAL_MOESIF_BASEURL', 'https://api.moesif.net')
+    if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
+        try:
+            if DEBUG:
+                print('Start capturing outgoing requests')
+            # Start capturing outgoing requests
+            StartCapture().start_capture_outgoing(settings.MOESIF_MIDDLEWARE)
+        except:
+            logger.error('Error while starting to capture the outgoing events')
     api_version = middleware_settings.get('API_VERSION')
     api_client = client.api
     response_catcher = HttpResponseCatcher()
