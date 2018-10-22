@@ -1,10 +1,14 @@
 # Moesif Middleware for Python Django
 
+[![Built For][ico-built-for]][link-built-for]
+[![Latest Version][ico-version]][link-package]
+[![Language Versions][ico-language]][link-language]
+[![Software License][ico-license]][link-license]
+[![Source Code][ico-source]][link-source]
+
 Django middleware to capture _incoming_ or _outgoing_ API calls and send to the Moesif API Analytics platform.
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
-
-[Package on PyPI](https://pypi.python.org/pypi/moesifdjango)
 
 This SDK uses the Requests library and will work for Python 2.7 — 3.5.
 
@@ -187,3 +191,15 @@ An example Moesif integration based on quick start tutorials of Django and Djang
 ## Other integrations
 
 To view more more documentation on integration options, please visit __[the Integration Options Documentation](https://www.moesif.com/docs/getting-started/integration-options/).__
+
+[ico-built-for]: https://img.shields.io/badge/built%20for-django-blue.svg
+[ico-version]: https://img.shields.io/pypi/v/moesifdjango.svg
+[ico-language]: https://img.shields.io/pypi/pyversions/moesifdjango.svg
+[ico-license]: https://img.shields.io/badge/License-Apache%202.0-green.svg
+[ico-source]: https://img.shields.io/github/last-commit/moesif/moesifdjango.svg?style=social
+
+[link-built-for]: https://github.com/rack/rack
+[link-package]: https://pypi.python.org/pypi/moesifdjango
+[link-language]: https://pypi.python.org/pypi/moesifdjango
+[link-license]: https://raw.githubusercontent.com/Moesif/moesifdjango/master/LICENSE
+[link-source]: https://github.com/Moesif/moesifdjango
