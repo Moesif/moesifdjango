@@ -198,7 +198,7 @@ To view more more documentation on integration options, please visit __[the Inte
 [ico-license]: https://img.shields.io/badge/License-Apache%202.0-green.svg
 [ico-source]: https://img.shields.io/github/last-commit/moesif/moesifdjango.svg?style=social
 
-[link-built-for]: https://github.com/rack/rack
+[link-built-for]: https://www.djangoproject.com/
 [link-package]: https://pypi.python.org/pypi/moesifdjango
 [link-language]: https://pypi.python.org/pypi/moesifdjango
 [link-license]: https://raw.githubusercontent.com/Moesif/moesifdjango/master/LICENSE
