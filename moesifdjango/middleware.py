@@ -270,7 +270,7 @@ def moesif_middleware(*args):
         sampling_percentage = float(middleware_settings.get('SAMPLING_PERCENTAGE', 100))
         random_percentage = random.random() * 100
 
-        if sampling_percentage > random_percentage:
+        if sampling_percentage >= random_percentage:
             if CELERY:
                 sending_event()
             else:
