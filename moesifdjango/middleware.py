@@ -8,6 +8,7 @@ import base64
 import re
 import django
 import logging
+import random
 
 from django.conf import settings
 from django.utils import timezone
@@ -266,12 +267,16 @@ def moesif_middleware(*args):
                     print("Error sending event to Moesif, with status code:")
                     print(inst.response_code)
 
-        if CELERY:
-            sending_event()
-        else:
-            # send the event to moesif via background so not blocking
-            sending_background_thread = threading.Thread(target=sending_event)
-            sending_background_thread.start()
+        sampling_percentage = float(middleware_settings.get('SAMPLING_PERCENTAGE', 100))
+        random_percentage = random.random() * 100
+
+        if sampling_percentage >= random_percentage:
+            if CELERY:
+                sending_event()
+            else:
+                # send the event to moesif via background so not blocking
+                sending_background_thread = threading.Thread(target=sending_event)
+                sending_background_thread.start()
 
         return response
 
