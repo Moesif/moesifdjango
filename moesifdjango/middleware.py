@@ -31,7 +31,21 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
     try:
         import celery
         from .tasks import async_client_create_event
-        CELERY = True
+        from kombu import Connection
+        try:
+            BROKER_URL = settings.BROKER_URL
+            if BROKER_URL:
+                CELERY = True
+            else:
+                CELERY = False
+        except AttributeError:
+            BROKER_URL = settings.MOESIF_MIDDLEWARE.get('CELERY_BROKER_URL', None)
+            if BROKER_URL:
+                CELERY = True
+            else:
+                logger.warning("USE_CELERY flag was set to TRUE, but BROKER_URL not found")
+                CELERY = False
+
     except:
         logger.warning("USE_CELERY flag was set to TRUE, but celery package not found.")
         CELERY = False
@@ -257,7 +271,17 @@ def moesif_middleware(*args):
                 if not CELERY:
                     api_client.create_event(event_model)
                 else:
-                    async_client_create_event.delay(event_model.to_dictionary())
+                    try:
+                        with Connection(BROKER_URL) as conn:
+                            simple_queue = conn.SimpleQueue('moesif_events_queue')
+                            message = event_model.to_dictionary()
+                            simple_queue.put(message)
+                            simple_queue.close()
+                        if DEBUG:
+                            print("Event added to the queue")
+                    except:
+                        if DEBUG:
+                            print("Error while connecting to - {0}".format(BROKER_URL))
                 if DEBUG:
                     print("sent done")
             except APIException as inst:
