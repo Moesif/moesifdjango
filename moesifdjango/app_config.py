@@ -18,15 +18,10 @@ def get_config(api_client, config_dict, cached_config_etag):
         if cached_config_etag:
             if cached_config_etag in config_dict: del config_dict[cached_config_etag]
         config_dict[response_config_etag] = json.loads(config_api_response.raw_body)
-        try:
-            app_config = config_dict.get(response_config_etag)
-            if app_config is not None:
-                sample_rate = app_config.get('sample_rate', 100)
-                last_updated_time = datetime.utcnow()
-            else:
-                last_updated_time = datetime.utcnow()
-        except:
-            last_updated_time = datetime.utcnow()
+        app_config = config_dict.get(response_config_etag)
+        if app_config is not None:
+            sample_rate = app_config.get('sample_rate', 100)
+        last_updated_time = datetime.utcnow()
     except:
         last_updated_time = datetime.utcnow()
     return last_updated_time, sample_rate, config_dict
