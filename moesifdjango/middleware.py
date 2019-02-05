@@ -21,6 +21,8 @@ from .http_response_catcher import HttpResponseCatcher
 from .masks import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
+from datetime import datetime, timedelta
+from app_config import AppConfig, get_config, set_config
 
 # Logger Config
 logging.basicConfig()
@@ -81,6 +83,9 @@ def moesif_middleware(*args):
     regex_http_ = re.compile(r'^HTTP_.+$')
     regex_content_type = re.compile(r'^CONTENT_TYPE$')
     regex_content_length = re.compile(r'^CONTENT_LENGTH$')
+    config_dict = {}
+    AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict = get_config(api_client, config_dict, None)
+    set_config(AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict)
 
     def middleware(request):
         # Code to be executed for each request before
@@ -269,7 +274,15 @@ def moesif_middleware(*args):
                 print("sending event to moesif")
             try:
                 if not CELERY:
-                    api_client.create_event(event_model)
+                    event_api_response = api_client.create_event(event_model)
+                    cached_config_etag = next(iter(config_dict))
+                    event_response_config_etag = event_api_response.get("X-Moesif-Config-ETag")
+                    if event_response_config_etag is not None \
+                            and cached_config_etag != event_response_config_etag \
+                            and datetime.utcnow() > AppConfig.last_updated_time + timedelta(minutes=5):
+
+                        AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict = get_config(api_client, config_dict, cached_config_etag)
+                        set_config(AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict)
                 else:
                     try:
                         with Connection(BROKER_URL) as conn:
@@ -291,10 +304,9 @@ def moesif_middleware(*args):
                     print("Error sending event to Moesif, with status code:")
                     print(inst.response_code)
 
-        sampling_percentage = float(middleware_settings.get('SAMPLING_PERCENTAGE', 100))
         random_percentage = random.random() * 100
 
-        if sampling_percentage >= random_percentage:
+        if AppConfig.sampling_percentage >= random_percentage:
             if CELERY:
                 sending_event()
             else:

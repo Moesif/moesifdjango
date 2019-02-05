@@ -19,6 +19,7 @@ from .http_response_catcher import HttpResponseCatcher
 from .masks import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
+from datetime import datetime, timedelta
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -53,6 +54,30 @@ class MoesifMiddlewarePre19(object):
         self.regex_http_          = re.compile(r'^HTTP_.+$')
         self.regex_content_type   = re.compile(r'^CONTENT_TYPE$')
         self.regex_content_length = re.compile(r'^CONTENT_LENGTH$')
+        self.config_dict = {}
+        self.sampling_percentage = self.get_config(None)
+
+    def get_config(self,cached_config_etag):
+        """Get Config"""
+        sample_rate = 100
+        try:
+            config_api_response = self.api_client.get_app_config()
+            response_config_etag = config_api_response.headers.get("X-Moesif-Config-ETag")
+            if cached_config_etag:
+                if cached_config_etag in self.config_dict: del self.config_dict[cached_config_etag]
+            self.config_dict[response_config_etag] = json.loads(config_api_response.raw_body)
+            try:
+                app_config = self.config_dict.get(response_config_etag)
+                if app_config is not None:
+                    sample_rate = app_config.get('sample_rate', 100)
+                    self.last_updated_time = datetime.utcnow()
+                else:
+                    self.last_updated_time = datetime.utcnow()
+            except:
+                self.last_updated_time = datetime.utcnow()
+        except:
+            self.last_updated_time = datetime.utcnow()
+        return sample_rate
 
     def process_request(self, request):
         request.moesif_req_time = timezone.now()
@@ -233,7 +258,14 @@ class MoesifMiddlewarePre19(object):
             if self.DEBUG:
                 print("sending event to moesif")
             try:
-                self.api_client.create_event(event_model)
+                event_api_response = self.api_client.create_event(event_model)
+                cached_config_etag = next(iter(self.config_dict))
+                event_response_config_etag = event_api_response.get("X-Moesif-Config-ETag")
+
+                if event_response_config_etag is not None \
+                        and cached_config_etag != event_response_config_etag \
+                        and datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
+                    self.sampling_percentage = self.get_config(cached_config_etag)
                 if self.DEBUG:
                     print("sent done")
             except APIException as inst:
@@ -243,10 +275,9 @@ class MoesifMiddlewarePre19(object):
                     print("Error sending event to Moesif, with status code:")
                     print(inst.response_code)
 
-        sampling_percentage = float(self.middleware_settings.get('SAMPLING_PERCENTAGE', 100))
         random_percentage = random.random() * 100
 
-        if sampling_percentage >= random_percentage:
+        if self.sampling_percentage >= random_percentage:
             # send the event to moesif via background so not blocking
             sending_background_thread = threading.Thread(target=sending_event)
             sending_background_thread.start()
