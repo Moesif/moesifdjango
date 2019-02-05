@@ -12,6 +12,8 @@ from .http_response_catcher import HttpResponseCatcher
 from celery import shared_task
 from moesifapi.moesif_api_client import MoesifAPIClient
 from moesifapi.models import EventModel
+from .app_config import AppConfig, get_config, set_config
+from datetime import datetime, timedelta
 
 middleware_settings = settings.MOESIF_MIDDLEWARE
 client = MoesifAPIClient(middleware_settings.get('APPLICATION_ID'))
@@ -71,7 +73,16 @@ def async_client_create_event():
     if batch_events:
         if DEBUG:
             print("Sending events to Moesif")
-        api_client.create_events_batch(batch_events)
+        batch_events_api_response = api_client.create_events_batch(batch_events)
+        cached_config_etag = next(iter(AppConfig.config_dict))
+        batch_events_response_config_etag = batch_events_api_response.get("X-Moesif-Config-ETag")
+        if batch_events_response_config_etag is not None \
+                and cached_config_etag != batch_events_response_config_etag \
+                and datetime.utcnow() > AppConfig.last_updated_time + timedelta(minutes=5):
+
+            AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict = get_config(api_client, AppConfig.config_dict,
+                                                                                    cached_config_etag)
+            set_config(AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict)
         if DEBUG:
             print("Events sent successfully")
     else:
