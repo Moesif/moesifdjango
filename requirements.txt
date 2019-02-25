@@ -3,6 +3,6 @@ jsonpickle==0.7.1
 python-dateutil==2.5.3
 nose==1.3.7
 isodatetimehandler==1.0.2
-moesifapi==1.2.3
+moesifapi==1.2.5
 celery==4.1.0
-moesifpythonrequest==0.1.5
+moesifpythonrequest==0.1.6
