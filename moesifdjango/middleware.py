@@ -23,6 +23,7 @@ from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
 from app_config import AppConfig, get_config, set_config
+import uuid
 
 # Logger Config
 logging.basicConfig()
@@ -91,6 +92,9 @@ def moesif_middleware(*args):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
 
+        # Initialize Transaction Id
+        transaction_id = None
+
         req_time = timezone.now()
 
         if not request.content_type.startswith('multipart/form-data'):
@@ -156,6 +160,19 @@ def moesif_middleware(*args):
 
         req_headers = {k: flatten_to_string(v) for k, v in req_headers.items()}
 
+        # Add transaction id to request headers
+        capture_transaction_id = middleware_settings.get('DISABLE_TRANSACTION_ID', False)
+        if not capture_transaction_id:
+            req_trans_id = req_headers.get("X-MOESIF-TRANSACTION-ID", None)
+            if req_trans_id:
+                transaction_id = req_trans_id
+                if not transaction_id:
+                    transaction_id = str(uuid.uuid4())
+            else:
+                transaction_id = str(uuid.uuid4())
+            # Add transaction id to the request header
+            req_headers["X-MOESIF-TRANSACTION-ID"] = transaction_id
+
         req_body = None
         req_body_transfer_encoding = None
         try:
@@ -175,6 +192,10 @@ def moesif_middleware(*args):
 
         def mapper(key):
             return copy.deepcopy(response[key])
+
+        # Add transaction id to request headers
+        if transaction_id:
+            response._headers["x-moesif-transaction-id"] = ("X-Moesif-Transaction-Id", transaction_id)
 
         # a little hacky, using _headers, which is intended as a private variable.
         rsp_headers = {k: mapper(k) for k, v in response._headers.items()}

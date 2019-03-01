@@ -20,6 +20,7 @@ from .masks import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
+import uuid
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -56,6 +57,7 @@ class MoesifMiddlewarePre19(object):
         self.regex_content_length = re.compile(r'^CONTENT_LENGTH$')
         self.config_dict = {}
         self.sampling_percentage = self.get_config(None)
+        self.transaction_id = None
 
     def get_config(self,cached_config_etag):
         """Get Config"""
@@ -137,6 +139,19 @@ class MoesifMiddlewarePre19(object):
 
         req_headers = {k: flatten_to_string(v) for k, v in req_headers.items()}
 
+        # Add transaction id to request headers
+        capture_transaction_id = self.middleware_settings.get('DISABLE_TRANSACTION_ID', False)
+        if not capture_transaction_id:
+            req_trans_id = req_headers.get("X-MOESIF-TRANSACTION-ID", None)
+            if req_trans_id:
+                self.transaction_id = req_trans_id
+                if not self.transaction_id:
+                    self.transaction_id = str(uuid.uuid4())
+            else:
+                self.transaction_id = str(uuid.uuid4())
+            # Add transaction id to the request header
+            req_headers["X-MOESIF-TRANSACTION-ID"] = self.transaction_id
+
         req_body = None
         req_body_transfer_encoding = None
         try:
@@ -156,6 +171,10 @@ class MoesifMiddlewarePre19(object):
 
         def mapper(key):
             return copy.deepcopy(response[key])
+
+        # Add transaction id to request headers
+        if self.transaction_id:
+            response._headers["x-moesif-transaction-id"] = ("X-Moesif-Transaction-Id", self.transaction_id)
 
         # a little hacky, using _headers, which is intended as a private variable.
         rsp_headers = {k: mapper(k) for k, v in response._headers.items()}
