@@ -1,36 +1,18 @@
 from django.test import SimpleTestCase, TestCase
-from django.contrib.auth.models import AnonymousUser, User
-from django.http import HttpRequest, HttpResponse
-from django.test.utils import override_settings
+from django.http import HttpResponse
 from django.test import RequestFactory
-
 from django.contrib.auth.models import User
-
-# Create your tests here.
-
-import jsonpickle
-from moesifdjango.middleware import moesif_middleware
+from moesifdjango.middleware import MoesifMiddleware
 from moesifdjango.masks import *
+import jsonpickle
 
-MIDDLEWARE_TEST_SETINGS = {
-    'APPLICATION_ID': 'eyJhcHAiOiIzNDU6MSIsInZlciI6IjIuMCIsIm9yZyI6Ijg4OjIiLCJpYXQiOjE0NzcwMDgwMDB9.576_l8Bza-gOoKzBR4_qnKEQOi2UYHh_FAK9IoDdUgc',
-    'REQUEST_HEADER_MASKS': ['header1', 'header2'],
-    'REQUEST_BODY_MASKS': ['body1', 'body2'],
-    'RESPONSE_HEADER_MASKS': ['header1', 'header2'],
-    'RESPONSE_BODY_MASKS': ['body1', 'body2'],
-    'LOCAL_DEBUG': True,
-}
-
-#    'LOCAL_MOESIF_BASEURL': 'http://192.168.0.5:8000/_moesif/api'
-# prodution api baseurl is 'https://api.moesif.net'
 
 class MoesifMiddlewareTest(TestCase):
 
     def setUp(self):
         self.request_factory = RequestFactory()
-        self.user = User.objects.create_user(username='jacob', email='jacob@job.com', password='top_secret')
+        self.user = User.objects.create_user(username='testpythonapiuser', email='test@test.com', password='top_secret')
 
-    @override_settings(MOESIF_MIDDLEWARE=MIDDLEWARE_TEST_SETINGS)
     def test_get_patched_middlesettings(self):
         def get_response(req):
             response_data = {}
@@ -39,11 +21,35 @@ class MoesifMiddlewareTest(TestCase):
             response = HttpResponse(response_data)
             return response
 
-        middleware = moesif_middleware(get_response)
-        request = self.request_factory.get('/test/1')
+        middleware = MoesifMiddleware(get_response)
+        request = self.request_factory.get('/api/acmeinc/items/94752/reviews')
         request.user = self.user
         response = middleware(request)
-        self.assertEqual(response.status_code, 200);
+        self.assertEqual(response.status_code, 200)
+
+class UpdateUserTests(SimpleTestCase):
+
+    def testUpdateUser(self):
+        middleware = MoesifMiddleware(None)
+        middleware.update_user({
+        'user_id': 'testpythonapiuser',
+        'session_token': 'jkj9324-23489y5324-ksndf8-d9syf8',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
+        })
+
+
+class UpdateUsersBatchTest(SimpleTestCase):
+
+    def testUpdateUsersBatch(self):
+        middleware = MoesifMiddleware(None)
+        middleware.update_users_batch([{
+            'user_id': 'testpythonapiuser',
+            'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+        }, {
+            'user_id': 'testpythonapiuser1',
+            'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+        }])
+
 
 class MaskTests(SimpleTestCase):
     def setUp(self):

@@ -20,7 +20,7 @@ pip install moesifdjango
 
 ## How to use
 
-In your `settings.py` file in your Django project directory, please add `moesifdjango.middleware.moesif_middleware`
+In your `settings.py` file in your Django project directory, please add `moesifdjango.middleware.MoesifMiddleware`
 to the MIDDLEWARE array.
 If you plan to use celery as the backend of asynchronous delivered logged requests, you also need to add `moesifdjango` to your `INSTALLED_APPS`.
 
@@ -29,7 +29,7 @@ and AuthenticationMiddleware, because they add useful session data that enables 
 
 ### Changes in Django 1.10
 
-Django middleware style and setup was refactored in version 1.10. You need need to import the correct version of Moesif middleware depending on your Django version. If you're using Django 1.10 or greater, use `moesifdjango.middleware.moesif_middleware`. However, if you're using Django 1.9 or older, you need to follow the legacy style for importing middleware and use `moesifdjango.middleware_pre19.MoesifMiddlewarePre19` instead.
+Django middleware style and setup was refactored in version 1.10. You need need to import the correct version of Moesif middleware depending on your Django version. If you're using Django 1.10 or greater, use `moesifdjango.middleware.MoesifMiddleware`. However, if you're using Django 1.9 or older, you need to follow the legacy style for importing middleware and use `moesifdjango.middleware_pre19.MoesifMiddlewarePre19` instead.
 
 You can find your current Django version via `python -c "import django; print(django.get_version())"`
 {: .notice--info}
@@ -48,7 +48,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'moesifdjango.middleware.moesif_middleware'
+    'moesifdjango.middleware.MoesifMiddleware'
     ...
 ]
 ```
@@ -182,6 +182,46 @@ MOESIF_MIDDLEWARE = {
 }
 
 ```
+
+## Update User
+
+### update_user method
+A method is attached to the moesif middleware object to update the users profile or metadata.
+The metadata field can be any custom data you want to set on the user. The `user_id` field is required.
+
+```python
+middleware = MoesifMiddleware(None)
+update_user = middleware.update_user({
+    'user_id': 'testpythonapiuser',
+    'session_token': 'jkj9324-23489y5324-ksndf8-d9syf8',
+    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
+    })
+```
+
+### update_users_batch method
+A method is attached to the moesif middleware object to update the users profile or metadata in batch.
+The metadata field can be any custom data you want to set on the user. The `user_id` field is required.
+
+```python
+middleware = MoesifMiddleware(None)
+update_users = middleware.update_users_batch([{
+        'user_id': 'testpythonapiuser',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+    }, {
+        'user_id': 'testpythonapiuser1',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+    }])
+```
+
+## How to test
+
+1. Manually clone the git repo
+2. Invoke `pip install Django` if you haven't done so.
+3. Invoke `pip install moesifdjango`
+3. Add your own application id to 'tests/settings.py'. You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.com/) -> _Top Right Menu_ -> _Installation_
+4. From terminal/cmd navigate to the root directory of the middleware tests.
+5. Invoke `python manage.py test` if you are using Django 1.10 or newer.
+6. Invoke `python manage.py test middleware_pre19_tests` if you are using Django 1.9 or older.
 
 ## Example
 
