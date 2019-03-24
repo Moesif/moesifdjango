@@ -183,6 +183,46 @@ MOESIF_MIDDLEWARE = {
 
 ```
 
+## Update User
+
+### update_user method
+A method is attached to the moesif middleware object to update the users profile or metadata.
+The metadata field can be any custom data you want to set on the user. The `user_id` field is required.
+
+```python
+middleware = MoesifMiddleware(None)
+update_user = middleware.update_user({
+    'user_id': 'testpythonapiuser',
+    'session_token': 'jkj9324-23489y5324-ksndf8-d9syf8',
+    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
+    })
+```
+
+### update_users_batch method
+A method is attached to the moesif middleware object to update the users profile or metadata in batch.
+The metadata field can be any custom data you want to set on the user. The `user_id` field is required.
+
+```python
+middleware = MoesifMiddleware(None)
+update_users = middleware.update_users_batch([{
+        'user_id': 'testpythonapiuser',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+    }, {
+        'user_id': 'testpythonapiuser1',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+    }])
+```
+
+## How to test
+
+1. Manually clone the git repo
+2. Invoke `pip install Django` if you haven't done so.
+3. Invoke `pip install moesifdjango`
+3. Add your own application id to 'tests/settings.py'. You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.com/) -> _Top Right Menu_ -> _Installation_
+4. From terminal/cmd navigate to the root directory of the middleware tests.
+5. Invoke `python manage.py test` if you are using Django 1.10 or newer.
+6. Invoke `python manage.py test middleware_pre19_tests` if you are using Django 1.9 or older.
+
 ## Example
 
 An example Moesif integration based on quick start tutorials of Django and Django Rest Framework:

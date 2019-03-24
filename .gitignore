@@ -3,6 +3,9 @@
 
 README.rst
 
+# Ignore sqlite3
+*.sqlite3
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/

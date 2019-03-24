@@ -17,18 +17,12 @@ from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import *
+from .client_ip import *
+from update_users import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
 import uuid
-
-def get_client_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
 
 class MoesifMiddlewarePre19(object):
 
@@ -297,3 +291,9 @@ class MoesifMiddlewarePre19(object):
             sending_background_thread.start()
 
         return response
+
+    def update_user(self, user_profile):
+        update_user(user_profile, self.api_client, self.DEBUG)
+
+    def update_users_batch(self, user_profiles):
+        update_users_batch(user_profiles, self.api_client, self.DEBUG)
