@@ -56,7 +56,7 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
         CELERY = False
 
 
-class MoesifMiddleware:
+class moesif_middleware:
     def __init__(self, get_response):
         self.get_response = get_response
         # One-time configuration and initialization.

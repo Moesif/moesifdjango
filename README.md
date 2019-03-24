@@ -20,7 +20,7 @@ pip install moesifdjango
 
 ## How to use
 
-In your `settings.py` file in your Django project directory, please add `moesifdjango.middleware.MoesifMiddleware`
+In your `settings.py` file in your Django project directory, please add `moesifdjango.middleware.moesif_middleware`
 to the MIDDLEWARE array.
 If you plan to use celery as the backend of asynchronous delivered logged requests, you also need to add `moesifdjango` to your `INSTALLED_APPS`.
 
@@ -29,7 +29,7 @@ and AuthenticationMiddleware, because they add useful session data that enables 
 
 ### Changes in Django 1.10
 
-Django middleware style and setup was refactored in version 1.10. You need need to import the correct version of Moesif middleware depending on your Django version. If you're using Django 1.10 or greater, use `moesifdjango.middleware.MoesifMiddleware`. However, if you're using Django 1.9 or older, you need to follow the legacy style for importing middleware and use `moesifdjango.middleware_pre19.MoesifMiddlewarePre19` instead.
+Django middleware style and setup was refactored in version 1.10. You need need to import the correct version of Moesif middleware depending on your Django version. If you're using Django 1.10 or greater, use `moesifdjango.middleware.moesif_middleware`. However, if you're using Django 1.9 or older, you need to follow the legacy style for importing middleware and use `moesifdjango.middleware_pre19.MoesifMiddlewarePre19` instead.
 
 You can find your current Django version via `python -c "import django; print(django.get_version())"`
 {: .notice--info}
@@ -48,7 +48,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'moesifdjango.middleware.MoesifMiddleware'
+    'moesifdjango.middleware.moesif_middleware'
     ...
 ]
 ```

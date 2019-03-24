@@ -2,7 +2,7 @@ from django.test import SimpleTestCase, TestCase
 from django.http import HttpResponse
 from django.test import RequestFactory
 from django.contrib.auth.models import User
-from moesifdjango.middleware import MoesifMiddleware
+from moesifdjango.middleware import moesif_middleware
 from moesifdjango.masks import *
 import jsonpickle
 
@@ -21,7 +21,7 @@ class MoesifMiddlewareTest(TestCase):
             response = HttpResponse(response_data)
             return response
 
-        middleware = MoesifMiddleware(get_response)
+        middleware = moesif_middleware(get_response)
         request = self.request_factory.get('/api/acmeinc/items/94752/reviews')
         request.user = self.user
         response = middleware(request)
@@ -30,7 +30,7 @@ class MoesifMiddlewareTest(TestCase):
 class UpdateUserTests(SimpleTestCase):
 
     def testUpdateUser(self):
-        middleware = MoesifMiddleware(None)
+        middleware = moesif_middleware(None)
         middleware.update_user({
         'user_id': 'testpythonapiuser',
         'session_token': 'jkj9324-23489y5324-ksndf8-d9syf8',
@@ -41,7 +41,7 @@ class UpdateUserTests(SimpleTestCase):
 class UpdateUsersBatchTest(SimpleTestCase):
 
     def testUpdateUsersBatch(self):
-        middleware = MoesifMiddleware(None)
+        middleware = moesif_middleware(None)
         middleware.update_users_batch([{
             'user_id': 'testpythonapiuser',
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
