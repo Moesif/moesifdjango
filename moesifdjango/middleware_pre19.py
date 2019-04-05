@@ -18,7 +18,7 @@ from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import *
 from .client_ip import *
-from update_users import *
+from .update_users import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
