@@ -10,7 +10,6 @@ def is_ip(value):
 
 def get_client_ip_from_x_forwarded_for(value):
     try:
-        value = value.encode('utf-8')
 
         if not value or value is None:
             return None
