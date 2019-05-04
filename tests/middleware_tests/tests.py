@@ -50,6 +50,28 @@ class UpdateUsersBatchTest(SimpleTestCase):
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }])
 
+class UpdateCompanyTest(SimpleTestCase):
+
+    def testUpdateCompany(self):
+        middleware = moesif_middleware(None)
+        middleware.update_company({
+        'company_id': '1',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
+        })
+
+
+class UpdateCompaniesBatchTest(SimpleTestCase):
+
+    def testUpdateCompaniesBatch(self):
+        middleware = moesif_middleware(None)
+        middleware.update_companies_batch([{
+            'company_id': '1',
+            'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+        }, {
+            'company_id': '2',
+            'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+        }])
+
 
 class MaskTests(SimpleTestCase):
     def setUp(self):
