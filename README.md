@@ -186,7 +186,7 @@ MOESIF_MIDDLEWARE = {
 ## Update User
 
 ### update_user method
-A method is attached to the moesif middleware object to update the users profile or metadata.
+A method is attached to the moesif middleware object to update the user profile or metadata.
 The metadata field can be any custom data you want to set on the user. The `user_id` field is required.
 
 ```python
@@ -209,6 +209,35 @@ update_users = middleware.update_users_batch([{
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }, {
         'user_id': 'testpythonapiuser1',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+    }])
+```
+
+## Update Company
+
+### update_company method
+A method is attached to the moesif middleware object to update the company profile or metadata.
+The metadata field can be any custom data you want to set on the company. The `company_id` field is required.
+
+```python
+middleware = MoesifMiddleware(None)
+update_company = middleware.update_company({
+    'company_id': '1',
+    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
+    })
+```
+
+### update_companies_batch method
+A method is attached to the moesif middleware object to update the companies profile or metadata in batch.
+The metadata field can be any custom data you want to set on the company. The `company_id` field is required.
+
+```python
+middleware = MoesifMiddleware(None)
+update_companies = middleware.update_companies_batch([{
+        'company_id': '1',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+    }, {
+        'company_id': '2',
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }])
 ```

@@ -66,7 +66,7 @@ def update_users_batch(user_profiles, api_client, DEBUG):
                     batch_profiles = [UserModel.from_dictionary(d) for d in user_profiles]
                     api_client.update_users_batch(batch_profiles)
                     if DEBUG:
-                        print('User Profile updated successfully')
+                        print('Users Profile updated successfully')
                 except APIException as inst:
                     if 401 <= inst.response_code <= 403:
                         print("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
@@ -81,7 +81,7 @@ def update_users_batch(user_profiles, api_client, DEBUG):
                 try:
                     api_client.update_users_batch(user_profiles)
                     if DEBUG:
-                        print('User Profile updated successfully')
+                        print('Users Profile updated successfully')
                 except APIException as inst:
                     if 401 <= inst.response_code <= 403:
                         print("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
@@ -99,7 +99,7 @@ def update_users_batch(user_profiles, api_client, DEBUG):
                         batch_profiles = [UserModel.from_dictionary(d) for d in user_profiles_json]
                         api_client.update_users_batch(batch_profiles)
                         if DEBUG:
-                            print('User Profile updated successfully')
+                            print('Users Profile updated successfully')
                     except APIException as inst:
                         if 401 <= inst.response_code <= 403:
                             print("Unauthorized access sending event to Moesif. Please check your Appplication Id.")

@@ -21,6 +21,7 @@ from .http_response_catcher import HttpResponseCatcher
 from .masks import *
 from .client_ip import *
 from .update_users import *
+from .update_companies import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
@@ -333,3 +334,9 @@ class moesif_middleware:
 
     def update_users_batch(self, user_profiles):
         update_users_batch(user_profiles, self.api_client, self.DEBUG)
+
+    def update_company(self, company_profile):
+        update_company(company_profile, self.api_client, self.DEBUG)
+
+    def update_companies_batch(self, companies_profiles):
+        update_companies_batch(companies_profiles, self.api_client, self.DEBUG)
