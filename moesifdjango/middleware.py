@@ -209,10 +209,10 @@ class moesif_middleware:
             except:
                 if self.DEBUG:
                     print("could not json parse, so base64 encode")
-                rsp_body = base64.standard_b64encode(response.content)
+                rsp_body = base64.standard_b64encode(response.content).decode()
                 rsp_body_transfer_encoding = 'base64'
                 if self.DEBUG:
-                    print("base64 encoded body: " + rsp_body)
+                    print("base64 encoded body: " + str(rsp_body))
 
         rsp_time = timezone.now()
 
