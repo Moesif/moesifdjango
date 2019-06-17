@@ -134,6 +134,9 @@ and returns true if you want to skip this particular event.
 (optional, but highly recommended) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the user id used by your system. While Moesif tries to identify users automatically,
 but different frameworks and your implementation might be very different, it would be helpful and much more accurate to provide this function.
 
+##### __`IDENTIFY_COMPANY_OUTGOING`__
+(optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the company id for this event.
+
 ##### __`GET_METADATA_OUTGOING`__
 (optional) _(req, res) => dictionary_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and
 returns a dictionary (must be able to be encoded into JSON). This allows
@@ -152,7 +155,7 @@ def identifyUser(req, res):
 
 def identifyCompany(req, res):
     # return the company id here
-    return "company_id_1"
+    return "12345"
 
 def should_skip(req, res):
     if "healthprobe" in req.path:
