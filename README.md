@@ -90,6 +90,9 @@ You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.co
 #### __`IDENTIFY_USER`__
 (optional) _(request, response) => string_, a function that takes a request and a response, and returns a string that is the user id used by your system. While Moesif identify users automatically, and this middleware try to use the standard Django request.user.username, if your set up is very different from the standard implementations, it would be helpful to provide this function.
 
+#### __`IDENTIFY_COMPANY`__
+(optional) _(request, response) => string_, a function that takes a request and a response, and returns a string that is the company id for this event.
+
 #### __`GET_SESSION_TOKEN`__
 (optional) _(request, response) => string_, a function that takes a request and a response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
 
