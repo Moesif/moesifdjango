@@ -150,6 +150,10 @@ def identifyUser(req, res):
     # return the user id here
     return "user_id_1"
 
+def identifyCompany(req, res):
+    # return the company id here
+    return "company_id_1"
+
 def should_skip(req, res):
     if "healthprobe" in req.path:
         return True
@@ -177,6 +181,7 @@ MOESIF_MIDDLEWARE = {
     'APPLICATION_ID': 'Your application id',
     'LOCAL_DEBUG': False,
     'IDENTIFY_USER': identifyUser,
+    'IDENTIFY_COMPANY': identifyCompany,
     'GET_SESSION_TOKEN': get_token,
     'SKIP': should_skip,
     'MASK_EVENT_MODEL': mask_event,
