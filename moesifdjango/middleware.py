@@ -245,6 +245,15 @@ class moesif_middleware:
             if self.DEBUG:
                 print("can not execute identify_user function, please check moesif settings.")
 
+        company_id = None
+        try:
+            identify_company = self.middleware_settings.get('IDENTIFY_COMPANY', None)
+            if identify_company is not None:
+                company_id = identify_company(request, response)
+        except:
+            if self.DEBUG:
+                print("can not execute identify_company function, please check moesif settings.")
+
         metadata = None
         try:
             get_metadata = self.middleware_settings.get('GET_METADATA', None)
@@ -271,6 +280,7 @@ class moesif_middleware:
         event_model = EventModel(request=event_req,
                                  response=event_rsp,
                                  user_id=username,
+                                 company_id= company_id,
                                  session_token=session_token,
                                  metadata=metadata)
 
