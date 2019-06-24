@@ -56,6 +56,7 @@ class UpdateCompanyTest(SimpleTestCase):
         middleware = moesif_middleware(None)
         middleware.update_company({
         'company_id': '1',
+        'company_domain': 'acmeinc.com',
         'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
         })
 
@@ -66,9 +67,11 @@ class UpdateCompaniesBatchTest(SimpleTestCase):
         middleware = moesif_middleware(None)
         middleware.update_companies_batch([{
             'company_id': '1',
+            'company_domain': 'nowhere.com',
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }, {
             'company_id': '2',
+            'company_domain': 'acmeinc.com',
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }])
 
