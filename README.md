@@ -234,6 +234,7 @@ The metadata field can be any custom data you want to set on the company. The `c
 middleware = MoesifMiddleware(None)
 update_company = middleware.update_company({
     'company_id': '1',
+    'company_domain': 'acmeinc.com',
     'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
     })
 ```
@@ -246,9 +247,11 @@ The metadata field can be any custom data you want to set on the company. The `c
 middleware = MoesifMiddleware(None)
 update_companies = middleware.update_companies_batch([{
         'company_id': '1',
+        'company_domain': 'nowhere.com',
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }, {
         'company_id': '2',
+        'company_domain': 'acmeinc.com',
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }])
 ```
