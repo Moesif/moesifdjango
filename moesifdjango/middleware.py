@@ -63,6 +63,7 @@ class moesif_middleware:
         # One-time configuration and initialization.
         self.middleware_settings = settings.MOESIF_MIDDLEWARE
         self.DEBUG = self.middleware_settings.get('LOCAL_DEBUG', False)
+        self.LOG_BODY = self.middleware_settings.get('LOG_BODY', True)
         self.client = MoesifAPIClient(self.middleware_settings.get('APPLICATION_ID'))
         # below comment for setting moesif base_uri to a test server.
         if self.middleware_settings.get('LOCAL_DEBUG', False):
@@ -167,17 +168,18 @@ class moesif_middleware:
 
         req_body = None
         req_body_transfer_encoding = None
-        try:
-            # print("about to serialize request body" + request.body)
-            if self.DEBUG:
-                print("about to process request body")
-            if request._mo_body:
-                req_body = json.loads(request._mo_body)
-                req_body = mask_body(req_body, self.middleware_settings.get('REQUEST_BODY_MASKS'))
-        except:
-            if request._mo_body:
-                req_body = base64.standard_b64encode(request._mo_body)
-                req_body_transfer_encoding = 'base64'
+        if self.LOG_BODY:
+            try:
+                # print("about to serialize request body" + request.body)
+                if self.DEBUG:
+                    print("about to process request body")
+                if request._mo_body:
+                    req_body = json.loads(request._mo_body)
+                    req_body = mask_body(req_body, self.middleware_settings.get('REQUEST_BODY_MASKS'))
+            except:
+                if request._mo_body:
+                    req_body = base64.standard_b64encode(request._mo_body)
+                    req_body_transfer_encoding = 'base64'
 
         ip_address = get_client_ip(request)
         uri = request.scheme + "://" + request.get_host() + request.get_full_path()
@@ -196,10 +198,10 @@ class moesif_middleware:
 
         rsp_body = None
         rsp_body_transfer_encoding = None
-        if self.DEBUG:
-            print("about to process response")
-            print(response.content)
-        if response.content:
+        if self.LOG_BODY and response.content:
+            if self.DEBUG:
+                print("about to process response")
+                print(response.content)
             try:
                 rsp_body = json.loads(response.content)
                 if self.DEBUG:
