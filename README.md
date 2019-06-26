@@ -72,8 +72,9 @@ Also, add `MOESIF_MIDDLEWARE` to your `settings.py` file,
 
 MOESIF_MIDDLEWARE = {
     'APPLICATION_ID': 'Your Application ID Found in Settings on Moesif',
+    'LOG_BODY': True,
     ...
-    # other options see below.
+    # For other options see below.
 }
 ```
 
