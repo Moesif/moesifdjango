@@ -23,6 +23,7 @@ from .update_companies import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
+from .app_config import AppConfig
 import uuid
 
 class MoesifMiddlewarePre19(object):
@@ -51,26 +52,18 @@ class MoesifMiddlewarePre19(object):
         self.regex_http_          = re.compile(r'^HTTP_.+$')
         self.regex_content_type   = re.compile(r'^CONTENT_TYPE$')
         self.regex_content_length = re.compile(r'^CONTENT_LENGTH$')
-        self.config_dict = {}
-        self.sampling_percentage = self.get_config(None)
-        self.transaction_id = None
-
-    def get_config(self,cached_config_etag):
-        """Get Config"""
-        sample_rate = 100
+        self.app_config = AppConfig()
+        self.config = self.app_config.get_config(self.api_client, self.DEBUG)
+        self.sampling_percentage = 100
+        self.last_updated_time = datetime.utcnow()
         try:
-            config_api_response = self.api_client.get_app_config()
-            response_config_etag = config_api_response.headers.get("X-Moesif-Config-ETag")
-            if cached_config_etag:
-                if cached_config_etag in self.config_dict: del self.config_dict[cached_config_etag]
-            self.config_dict[response_config_etag] = json.loads(config_api_response.raw_body)
-            app_config = self.config_dict.get(response_config_etag)
-            if app_config is not None:
-                sample_rate = app_config.get('sample_rate', 100)
-            self.last_updated_time = datetime.utcnow()
+            if self.config:
+                self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(
+                    self.config, self.DEBUG)
         except:
-            self.last_updated_time = datetime.utcnow()
-        return sample_rate
+            if self.DEBUG:
+                print('Error while parsing application configuration on initialization')
+        self.transaction_id = None
 
     def process_request(self, request):
         request.moesif_req_time = timezone.now()
@@ -280,13 +273,17 @@ class MoesifMiddlewarePre19(object):
                 print("sending event to moesif")
             try:
                 event_api_response = self.api_client.create_event(event_model)
-                cached_config_etag = next(iter(self.config_dict))
                 event_response_config_etag = event_api_response.get("X-Moesif-Config-ETag")
 
                 if event_response_config_etag is not None \
-                        and cached_config_etag != event_response_config_etag \
+                        and self.config_etag != event_response_config_etag \
                         and datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
-                    self.sampling_percentage = self.get_config(cached_config_etag)
+                    try:
+                        self.config = self.app_config.get_config(self.api_client, self.DEBUG)
+                        self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(self.config, self.DEBUG)
+                    except:
+                        if self.DEBUG:
+                            print('Error while updating the application configuration')
                 if self.DEBUG:
                     print("sent done")
             except APIException as inst:

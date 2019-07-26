@@ -1,34 +1,27 @@
 from datetime import datetime
 import json
-
+from moesifapi.exceptions.api_exception import *
 
 # Application Configuration
 class AppConfig:
-    sampling_percentage = None
-    last_updated_time = None
-    config_dict = None
 
+    def get_config(self, api_client, debug):
+        """Get Config"""
+        try:
+            config_api_response = api_client.get_app_config()
+            return config_api_response
+        except APIException as inst:
+            if 401 <= inst.response_code <= 403:
+                print("Unauthorized access getting application configuration. Please check your Appplication Id.")
+            if debug:
+                print("Error sending event to Moesif, with status code:")
+                print(inst.response_code)
 
-def get_config(api_client, config_dict, cached_config_etag):
-    """Get Config"""
-    sample_rate = 100
-    try:
-        config_api_response = api_client.get_app_config()
-        response_config_etag = config_api_response.headers.get("X-Moesif-Config-ETag")
-        if cached_config_etag:
-            if cached_config_etag in config_dict: del config_dict[cached_config_etag]
-        config_dict[response_config_etag] = json.loads(config_api_response.raw_body)
-        app_config = config_dict.get(response_config_etag)
-        if app_config is not None:
-            sample_rate = app_config.get('sample_rate', 100)
-        last_updated_time = datetime.utcnow()
-    except:
-        last_updated_time = datetime.utcnow()
-    return last_updated_time, sample_rate, config_dict
-
-
-def set_config(updated_time, sample_rate, config_dict):
-    """Set global config"""
-    AppConfig.last_updated_time = updated_time
-    AppConfig.sampling_percentage = sample_rate
-    AppConfig.config_dict = config_dict
+    def parse_configuration(self, config, debug):
+        """Parse configuration object and return Etag, sample rate and last updated time"""
+        try:
+            return config.headers.get("X-Moesif-Config-ETag"), json.loads(config.raw_body).get('sample_rate', 100), datetime.utcnow()
+        except:
+            if debug:
+                print('Error while parsing the configuration object, setting the sample rate to default')
+            return None, 100, datetime.utcnow()
