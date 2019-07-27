@@ -6,3 +6,4 @@ isodatetimehandler==1.0.2
 moesifapi==1.2.5
 celery==4.1.0
 moesifpythonrequest==0.1.10
+apscheduler==3.6.1

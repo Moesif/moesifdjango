@@ -55,6 +55,7 @@ class MoesifMiddlewarePre19(object):
         self.app_config = AppConfig()
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
         self.sampling_percentage = 100
+        self.config_etag = None
         self.last_updated_time = datetime.utcnow()
         try:
             if self.config:
@@ -276,6 +277,7 @@ class MoesifMiddlewarePre19(object):
                 event_response_config_etag = event_api_response.get("X-Moesif-Config-ETag")
 
                 if event_response_config_etag is not None \
+                        and self.config_etag is not None \
                         and self.config_etag != event_response_config_etag \
                         and datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
                     try:

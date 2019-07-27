@@ -12,7 +12,7 @@ from .http_response_catcher import HttpResponseCatcher
 from celery import shared_task
 from moesifapi.moesif_api_client import MoesifAPIClient
 from moesifapi.models import EventModel
-from .app_config import AppConfig, get_config, set_config
+from .app_config import AppConfig
 from datetime import datetime, timedelta
 
 middleware_settings = settings.MOESIF_MIDDLEWARE
@@ -23,6 +23,20 @@ DEBUG = middleware_settings.get('LOCAL_DEBUG', False)
 api_client = client.api
 response_catcher = HttpResponseCatcher()
 api_client.http_call_back = response_catcher
+
+def get_config():
+    app_config = AppConfig()
+    config = app_config.get_config(api_client, DEBUG)
+    sampling_percentage = 100
+    config_etag = None
+    last_updated_time = datetime.utcnow()
+    try:
+        if config:
+            config_etag, sampling_percentage, last_updated_time = app_config.parse_configuration(config, DEBUG)
+    except:
+        if DEBUG:
+            print('Error while parsing application configuration on initialization')
+    return config, config_etag, sampling_percentage, last_updated_time
 
 try:
     get_broker_url = settings.BROKER_URL
@@ -46,7 +60,7 @@ def queue_get_all(queue_events):
     return events
 
 @shared_task(ignore_result=True)
-def async_client_create_event():
+def async_client_create_event(config, config_etag, sampling_percentage, last_updated_time):
     batch_events = []
     try:
         with Connection(BROKER_URL) as conn:
@@ -63,9 +77,10 @@ def async_client_create_event():
                     except ChannelError:
                         queue_size = 0
                     moesif_events_queue.close()
-            except ChannelError:
+            except ChannelError as ce:
                 if DEBUG:
                     print("No message to read from the queue")
+                    print(ce.message)
     except:
         if DEBUG:
             print("Error while connecting to - {0}".format(BROKER_URL))
@@ -74,15 +89,19 @@ def async_client_create_event():
         if DEBUG:
             print("Sending events to Moesif")
         batch_events_api_response = api_client.create_events_batch(batch_events)
-        cached_config_etag = next(iter(AppConfig.config_dict))
         batch_events_response_config_etag = batch_events_api_response.get("X-Moesif-Config-ETag")
         if batch_events_response_config_etag is not None \
-                and cached_config_etag != batch_events_response_config_etag \
-                and datetime.utcnow() > AppConfig.last_updated_time + timedelta(minutes=5):
+                and config_etag is not None \
+                and config_etag != batch_events_response_config_etag \
+                and datetime.utcnow() > last_updated_time + timedelta(minutes=5):
 
-            AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict = get_config(api_client, AppConfig.config_dict,
-                                                                                    cached_config_etag)
-            set_config(AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict)
+            try:
+                config = config.get_config(api_client, DEBUG)
+                config_etag, sampling_percentage, last_updated_time = config.parse_configuration(
+                    config, DEBUG)
+            except:
+                if DEBUG:
+                    print('Error while updating the application configuration')
         if DEBUG:
             print("Events sent successfully")
     else:
@@ -102,8 +121,9 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
 
             scheduler = BackgroundScheduler(daemon=True)
             scheduler.start()
+            config, config_etag, sampling_percentage, last_updated_time = get_config()
             scheduler.add_job(
-                func=async_client_create_event,
+                func=lambda: async_client_create_event(config, config_etag, sampling_percentage, last_updated_time),
                 trigger=IntervalTrigger(seconds=5),
                 id='moesif_events_batch_job',
                 name='Schedule events batch job every 5 second',
