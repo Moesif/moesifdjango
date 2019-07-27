@@ -52,6 +52,12 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
                 logger.warning("USE_CELERY flag was set to TRUE, but BROKER_URL not found")
                 CELERY = False
 
+        try:
+            conn = Connection(BROKER_URL)
+            simple_queue = conn.SimpleQueue('moesif_events_queue')
+        except:
+            logger.error("Error while connecting to - {0}".format(BROKER_URL))
+
     except:
         logger.warning("USE_CELERY flag was set to TRUE, but celery package not found.")
         CELERY = False
@@ -319,16 +325,13 @@ class moesif_middleware:
                                 logger.error('Error while updating the application configuration')
                 else:
                     try:
-                        with Connection(BROKER_URL) as conn:
-                            simple_queue = conn.SimpleQueue('moesif_events_queue')
-                            message = event_model.to_dictionary()
-                            simple_queue.put(message)
-                            simple_queue.close()
+                        message = event_model.to_dictionary()
+                        simple_queue.put(message)
                         if self.DEBUG:
                             print("Event added to the queue")
                     except:
                         if self.DEBUG:
-                            print("Error while connecting to - {0}".format(BROKER_URL))
+                            print("Error while adding event to the queue")
                 if self.DEBUG:
                     print("sent done")
             except APIException as inst:
