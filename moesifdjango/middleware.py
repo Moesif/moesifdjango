@@ -203,7 +203,7 @@ class moesif_middleware:
 
         rsp_body = None
         rsp_body_transfer_encoding = None
-        if self.LOG_BODY and response.content:
+        if self.LOG_BODY and isinstance(response, HttpResponse) and response.content:
             if self.DEBUG:
                 print("about to process response")
                 print(response.content)
