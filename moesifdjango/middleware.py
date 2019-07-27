@@ -25,7 +25,7 @@ from .update_companies import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
-from .app_config import AppConfig, get_config, set_config
+from .app_config import AppConfig
 import uuid
 
 # Logger Config
@@ -83,11 +83,16 @@ class moesif_middleware:
         self.regex_http_ = re.compile(r'^HTTP_.+$')
         self.regex_content_type = re.compile(r'^CONTENT_TYPE$')
         self.regex_content_length = re.compile(r'^CONTENT_LENGTH$')
-        self.config_dict = {}
-        AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict = get_config(self.api_client,
-                                                                                                       self.config_dict,
-                                                                                                       None)
-        set_config(AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict)
+        self.app_config = AppConfig()
+        self.config = self.app_config.get_config(self.api_client, self.DEBUG)
+        self.sampling_percentage = 100
+        self.last_updated_time = datetime.utcnow()
+        try:
+            if self.config:
+                self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(self.config, self.DEBUG)
+        except:
+            if self.DEBUG:
+                logger.error('Error while parsing application configuration on initialization')
 
     def __call__(self, request):
         # Code to be executed for each request before
@@ -198,7 +203,7 @@ class moesif_middleware:
 
         rsp_body = None
         rsp_body_transfer_encoding = None
-        if self.LOG_BODY and response.content:
+        if self.LOG_BODY and isinstance(response, HttpResponse) and response.content:
             if self.DEBUG:
                 print("about to process response")
                 print(response.content)
@@ -282,7 +287,7 @@ class moesif_middleware:
         event_model = EventModel(request=event_req,
                                  response=event_rsp,
                                  user_id=username,
-                                 company_id= company_id,
+                                 company_id=company_id,
                                  session_token=session_token,
                                  metadata=metadata)
 
@@ -300,14 +305,16 @@ class moesif_middleware:
             try:
                 if not CELERY:
                     event_api_response = self.api_client.create_event(event_model)
-                    cached_config_etag = next(iter(self.config_dict))
                     event_response_config_etag = event_api_response.get("X-Moesif-Config-ETag")
                     if event_response_config_etag is not None \
-                            and cached_config_etag != event_response_config_etag \
-                            and datetime.utcnow() > AppConfig.last_updated_time + timedelta(minutes=5):
-                        AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict = get_config(
-                            self.api_client, self.config_dict, cached_config_etag)
-                        set_config(AppConfig.last_updated_time, AppConfig.sampling_percentage, AppConfig.config_dict)
+                            and self.config_etag != event_response_config_etag \
+                            and datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
+                        try:
+                            self.config = self.app_config.get_config(self.api_client, self.DEBUG)
+                            self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(self.config, self.DEBUG)
+                        except:
+                            if self.DEBUG:
+                                logger.error('Error while updating the application configuration')
                 else:
                     try:
                         with Connection(BROKER_URL) as conn:
@@ -331,7 +338,7 @@ class moesif_middleware:
 
         random_percentage = random.random() * 100
 
-        if AppConfig.sampling_percentage >= random_percentage:
+        if self.sampling_percentage >= random_percentage:
             if CELERY:
                 sending_event()
             else:
