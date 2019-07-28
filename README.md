@@ -6,11 +6,15 @@
 [![Software License][ico-license]][link-license]
 [![Source Code][ico-source]][link-source]
 
-Django middleware to capture _incoming_ or _outgoing_ API calls and send to the Moesif API Analytics platform.
+Django middleware to log _incoming_ API calls hiting your own service or _outgoing_ API calls 
+going out to third parties. The API data is logged to the Moesif API Analytics platform. 
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
 This SDK uses the Requests library and will work for Python 2.7 — 3.5.
+
+For higher volume APIs, you can enable Celery which offloads the logging in a separate task.
+Install celery via `pip install celery` and set `USE_CELERY` to True 
 
 ## How to install
 
@@ -85,6 +89,8 @@ You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.co
 #### __`APPLICATION_ID`__
 (__required__), _string_, is obtained via your Moesif Account, this is required.
 
+### Options specific to incoming API calls 
+
 #### __`SKIP`__
 (optional) _(request, response) => boolean_, a function that takes a request and a response, and returns true if you want to skip this particular event.
 
@@ -101,30 +107,11 @@ You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.co
 (optional) _(request, response) => dictionary_, getMetadata is a function that returns an object that allows you
 to add custom metadata that will be associated with the event. The metadata must be a dictionary that can be converted to JSON. For example, you may want to save a VM instance_id, a trace_id, or a tenant_id with the request.
 
+#### __`LOG_BODY`__
+(optional) _boolean_, default True, Set to False to remove the HTTP body before sending to Moesif. If you want more control over which fields are included or not included look at the individual mask method below. 
+
 #### __`MASK_EVENT_MODEL`__
 (optional) _(EventModel) => EventModel_, a function that takes an EventModel and returns an EventModel with desired data removed. Use this if you prefer to write your own mask function than use the string based filter options: REQUEST_BODY_MASKS, REQUEST_HEADER_MASKS, RESPONSE_BODY_MASKS, & RESPONSE_HEADER_MASKS. The return value must be a valid EventModel required by Moesif data ingestion API. For details regarding EventModel please see the [Moesif Python API Documentation](https://www.moesif.com/docs/api?python).
-
-#### __`LOCAL_DEBUG`__
-_boolean_, set to True to print internal log messages for debugging SDK integration issues.
-
-#### __`USE_CELERY`__
-_boolean_, Default False. Set to True to use Celery for queuing sending data to Moesif. Check out [Celery documentation](http://docs.celeryproject.org) for more info.
-
-##### How to use Celery
-
-Install celery and redis with `pip install "celery[redis]"`
-
-*Please Note:* If you're using Celery 3.1 or earlier, install celery and redis with `pip install celery==3.1.25` and `pip install redis==2.10.6` 
-
-Set the configuration option to `USE_CELERY` to `True`.
-
-```python
-MOESIF_MIDDLEWARE = {
-    'USE_CELERY': True
-}
-```
-
-Start the celery worker with `celery -A <projectName> worker --loglevel=debug`
 
 #### __`REQUEST_HEADER_MASKS`__
 (deprecated), _string[]_, is a list of strings for headers that you want to hide from Moesif. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
@@ -138,8 +125,7 @@ Start the celery worker with `celery -A <projectName> worker --loglevel=debug`
 #### __`RESPONSE_BODY_MASKS`__
 (deprecated), _string[]_, performs the same task for response body. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
 
-#### __`LOG_BODY`__
-(optional) _boolean_, default True, Set to False to remove logging request and response body.
+### Options specific to outgoing API calls 
 
 #### __`CAPTURE_OUTGOING_REQUESTS`__
 _boolean_, Default False. Set to True to capture all outgoing API calls from your app to third parties like Stripe or to your own dependencies while using [Requests](http://docs.python-requests.org/en/master/) library. The options below is applied to outgoing API calls.
@@ -164,8 +150,34 @@ to associate this event with custom metadata. For example, you may want to save 
 ##### __`GET_SESSION_TOKEN_OUTGOING`__
 (optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
 
+### General options
 ##### __`LOG_BODY_OUTGOING`__
 (optional) _boolean_, default True, Set to False to remove logging request and response body.
+
+#### __`USE_CELERY`__
+_boolean_, Default False. Set to True to use Celery for queuing sending data to Moesif. Check out [Celery documentation](http://docs.celeryproject.org) for more info.
+
+##### How to use Celery
+
+__Because celery is optional, moesifdjango does not prepackage Celery as a dependency.
+Make sure you install celery via `pip install celery`__
+
+Install celery and redis with `pip install "celery[redis]"`
+
+*Please Note:* If you're using Celery 3.1 or earlier, install celery and redis with `pip install celery==3.1.25` and `pip install redis==2.10.6` 
+
+Set the configuration option to `USE_CELERY` to `True`.
+
+```python
+MOESIF_MIDDLEWARE = {
+    'USE_CELERY': True
+}
+```
+
+Start the celery worker with `celery -A <projectName> worker --loglevel=debug`
+
+#### __`LOCAL_DEBUG`__
+_boolean_, set to True to print internal log messages for debugging SDK integration issues.
 
 ### Example:
 
@@ -278,6 +290,20 @@ update_companies = middleware.update_companies_batch([{
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }])
 ```
+
+## Tested versions
+
+Moesif has validated moesifdjango against the following combinations. 
+Using the Celery queing service is optional, but can be enabled to enable higher performance. 
+
+| Python       | Django  | Celery | Redis  | Test with Celery | Test w/o Celery |
+| ------------ | ------- | ------ | ------ | ---------------- | --------------- |
+| Python 2.7   | 1.11.22 | 3.1.25 | 2.10.6 | Yes              | Yes             |
+| Python 2.7   | 1.11.22 | 4.0.3  | 3.2.1  | Yes              | Yes             |
+| Python 2.7   | 1.9     |        |        |                  | Yes             |
+| Python 3.6.4 | 1.11.22 | 3.1.25 | 2.10.6 | Yes              | Yes             |
+| Python 3.6.4 | 1.11.22 | 4.0.3  | 3.2.1  | Yes              | Yes             |
+| Python 3.6.4 | 1.9     |        |        |                  | Yes             |
 
 ## How to test
 
