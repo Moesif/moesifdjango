@@ -13,7 +13,7 @@ going out to third parties. The API data is logged to the Moesif API Analytics p
 
 This SDK uses the Requests library and will work for Python 2.7 — 3.5.
 
-For higher volume APIs, you can enable Celery which offloads the logging in a separate task.
+For high volume APIs, you can [enable Celery](#use_celery) which offloads the logging in a separate task.
 Install celery via `pip install celery` and set `USE_CELERY` to True 
 
 ## How to install
@@ -179,7 +179,9 @@ Start the celery worker with `celery -A <projectName> worker --loglevel=debug`
 #### __`LOCAL_DEBUG`__
 _boolean_, set to True to print internal log messages for debugging SDK integration issues.
 
-### Example:
+## Example 
+
+A more detailed example is available at [https://github.com/Moesif/moesifdjangoexample](https://github.com/Moesif/moesifdjangoexample)
 
 ```python
 def identifyUser(req, res):
