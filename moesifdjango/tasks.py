@@ -47,12 +47,12 @@ try:
 except AttributeError:
     BROKER_URL = settings.MOESIF_MIDDLEWARE.get('CELERY_BROKER_URL', None)
 
+
 def queue_get_all(queue_events):
     events = []
-    max_events_to_retreive = BATCH_SIZE
-    for num_of_events_retrieved in range(0, max_events_to_retreive):
+    for num_of_events_retrieved in range(0, BATCH_SIZE):
         try:
-            if num_of_events_retrieved == max_events_to_retreive:
+            if num_of_events_retrieved == BATCH_SIZE:
                 break
             events.append(queue_events.get_nowait())
         except:
@@ -60,30 +60,22 @@ def queue_get_all(queue_events):
     return events
 
 @shared_task(ignore_result=True)
-def async_client_create_event(config, config_etag, sampling_percentage, last_updated_time):
+def async_client_create_event(moesif_events_queue, config, config_etag, last_updated_time):
     batch_events = []
     try:
-        with Connection(BROKER_URL) as conn:
-            moesif_events_queue = conn.SimpleQueue('moesif_events_queue')
+        queue_size = moesif_events_queue.qsize()
+        while queue_size > 0:
+            message = queue_get_all(moesif_events_queue)
+            for event in message:
+                batch_events.append(EventModel().from_dictionary(event.payload))
+                event.ack()
             try:
                 queue_size = moesif_events_queue.qsize()
-                while queue_size > 0:
-                    message = queue_get_all(moesif_events_queue)
-                    for event in message:
-                        batch_events.append(EventModel().from_dictionary(event.payload))
-                        event.ack()
-                    try:
-                        queue_size = moesif_events_queue.qsize()
-                    except ChannelError:
-                        queue_size = 0
-                    moesif_events_queue.close()
-            except ChannelError as ce:
-                if DEBUG:
-                    print("No message to read from the queue")
-                    print(ce.message)
-    except:
+            except ChannelError:
+                queue_size = 0
+    except ChannelError:
         if DEBUG:
-            print("Error while connecting to - {0}".format(BROKER_URL))
+            print("No message to read from the queue")
 
     if batch_events:
         if DEBUG:
@@ -109,6 +101,16 @@ def async_client_create_event(config, config_etag, sampling_percentage, last_upd
             print("No events to send")
 
 
+def exit_handler(moesif_events_queue, scheduler):
+    try:
+        # Close the close
+        moesif_events_queue.close()
+        # Shut down the scheduler
+        scheduler.shutdown()
+    except:
+        if DEBUG:
+            print("Error while closing the queue or scheduler shut down")
+
 CELERY = False
 if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
     if BROKER_URL:
@@ -122,15 +124,21 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
             scheduler = BackgroundScheduler(daemon=True)
             scheduler.start()
             config, config_etag, sampling_percentage, last_updated_time = get_config()
-            scheduler.add_job(
-                func=lambda: async_client_create_event(config, config_etag, sampling_percentage, last_updated_time),
-                trigger=IntervalTrigger(seconds=5),
-                id='moesif_events_batch_job',
-                name='Schedule events batch job every 5 second',
-                replace_existing=True)
+            try:
+                conn = Connection(BROKER_URL)
+                moesif_events_queue = conn.SimpleQueue('moesif_events_queue')
+                scheduler.add_job(
+                    func=lambda: async_client_create_event(moesif_events_queue, config, config_etag, last_updated_time),
+                    trigger=IntervalTrigger(seconds=5),
+                    id='moesif_events_batch_job',
+                    name='Schedule events batch job every 5 second',
+                    replace_existing=True)
 
-            # Shut down the scheduler when exiting the app
-            atexit.register(lambda: scheduler.shutdown())
+                # Exit handler when exiting the app
+                atexit.register(lambda: exit_handler(moesif_events_queue, scheduler))
+            except:
+                if DEBUG:
+                    print("Error while connecting to - {0}".format(BROKER_URL))
         except:
             if DEBUG:
                 print("Error when scheduling the job")

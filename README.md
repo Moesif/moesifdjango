@@ -110,6 +110,22 @@ _boolean_, set to True to print internal log messages for debugging SDK integrat
 #### __`USE_CELERY`__
 _boolean_, Default False. Set to True to use Celery for queuing sending data to Moesif. Check out [Celery documentation](http://docs.celeryproject.org) for more info.
 
+##### How to use Celery
+
+Install celery and redis with `pip install "celery[redis]"`
+
+*Please Note:* If you're using Celery 3.1 or earlier, install celery and redis with `pip install celery==3.1.25` and `pip install redis==2.10.6` 
+
+Set the configuration option to `USE_CELERY` to `True`.
+
+```python
+MOESIF_MIDDLEWARE = {
+    'USE_CELERY': True
+}
+```
+
+Start the celery worker with `celery -A <projectName> worker --loglevel=debug`
+
 #### __`REQUEST_HEADER_MASKS`__
 (deprecated), _string[]_, is a list of strings for headers that you want to hide from Moesif. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
 
