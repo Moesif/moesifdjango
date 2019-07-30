@@ -6,8 +6,8 @@
 [![Software License][ico-license]][link-license]
 [![Source Code][ico-source]][link-source]
 
-Django middleware to log _incoming_ API calls hiting your own service or _outgoing_ API calls 
-going out to third parties. The API data is logged to the Moesif API Analytics platform. 
+Django middleware to log _incoming_ API calls hitting your own service or _outgoing_ API calls 
+going out to third parties and sends to [Moesif](https://www.moesif.com) for API analytics and log analysis. 
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
@@ -75,14 +75,19 @@ Also, add `MOESIF_MIDDLEWARE` to your `settings.py` file,
 ```
 
 MOESIF_MIDDLEWARE = {
-    'APPLICATION_ID': 'Your Application ID Found in Settings on Moesif',
+    'APPLICATION_ID': 'Your Moesif Application Id',
     'LOG_BODY': True,
     ...
     # For other options see below.
 }
 ```
 
-You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.com/) -> _Top Right Menu_ -> _App Setup_
+Your Moesif Application Id can be found in the [_Moesif Portal_](https://www.moesif.com/).
+After signing up for a Moesif account, your Moesif Application Id will be displayed during the onboarding steps. 
+
+You can always find your Moesif Application Id at any time by logging 
+into the [_Moesif Portal_](https://www.moesif.com/), click on the top right menu,
+and then clicking _Installation_.
 
 ## Configuration options
 
