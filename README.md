@@ -306,10 +306,13 @@ Using the Celery queing service is optional, but can be enabled to enable higher
 | Python       | Django  | Celery | Redis  | Test with Celery | Test w/o Celery |
 | ------------ | ------- | ------ | ------ | ---------------- | --------------- |
 | Python 2.7   | 1.11.22 | 3.1.25 | 2.10.6 | Yes              | Yes             |
-| Python 2.7   | 1.11.22 | 4.0.3  | 3.2.1  | Yes              | Yes             |
+| Python 2.7   | 1.11.22 | 4.3.0  | 3.2.1  | Yes              | Yes             |
 | Python 2.7   | 1.9     |        |        |                  | Yes             |
+| Python 3.4.5 | 1.11.22 | 3.1.25 | 2.10.6 |                  | Yes             |
+| Python 3.4.5 | 1.11.22 | 4.3.0  | 3.2.1  |                  | Yes             |
+| Python 3.4.5 | 1.9     |        |        | Yes              |                 |
 | Python 3.6.4 | 1.11.22 | 3.1.25 | 2.10.6 | Yes              | Yes             |
-| Python 3.6.4 | 1.11.22 | 4.0.3  | 3.2.1  | Yes              | Yes             |
+| Python 3.6.4 | 1.11.22 | 4.3.0  | 3.2.1  | Yes              | Yes             |
 | Python 3.6.4 | 1.9     |        |        |                  | Yes             |
 
 ## How to test
