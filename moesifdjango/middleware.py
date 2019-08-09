@@ -343,6 +343,7 @@ class moesif_middleware:
 
         random_percentage = random.random() * 100
 
+        self.sampling_percentage = self.app_config.get_sampling_percentage(self.config, username, company_id)
         if self.sampling_percentage >= random_percentage:
             if CELERY:
                 sending_event()
