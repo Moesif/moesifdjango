@@ -11,7 +11,7 @@ class MoesifMiddlewareTest(TestCase):
 
     def setUp(self):
         self.request_factory = RequestFactory()
-        self.user = User.objects.create_user(username='testpythonapiuser', email='test@test.com', password='top_secret')
+        self.user = User.objects.create_user(username='my_user_id', email='test@test.com', password='top_secret')
 
     def test_get_patched_middlesettings(self):
         def get_response(req):
@@ -32,7 +32,8 @@ class UpdateUserTests(SimpleTestCase):
     def testUpdateUser(self):
         middleware = moesif_middleware(None)
         middleware.update_user({
-        'user_id': 'testpythonapiuser',
+        'user_id': '12345',
+        'company_id' : '67890',
         'session_token': 'jkj9324-23489y5324-ksndf8-d9syf8',
         'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
         })
@@ -43,10 +44,12 @@ class UpdateUsersBatchTest(SimpleTestCase):
     def testUpdateUsersBatch(self):
         middleware = moesif_middleware(None)
         middleware.update_users_batch([{
-            'user_id': 'testpythonapiuser',
+            'user_id': '12345',
+            'company_id' : '67890',
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }, {
-            'user_id': 'testpythonapiuser1',
+            'user_id': '1234',
+            'company_id' : '6789',
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }])
 
@@ -55,7 +58,7 @@ class UpdateCompanyTest(SimpleTestCase):
     def testUpdateCompany(self):
         middleware = moesif_middleware(None)
         middleware.update_company({
-        'company_id': '1',
+        'company_id': '12345',
         'company_domain': 'acmeinc.com',
         'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
         })
@@ -66,11 +69,11 @@ class UpdateCompaniesBatchTest(SimpleTestCase):
     def testUpdateCompaniesBatch(self):
         middleware = moesif_middleware(None)
         middleware.update_companies_batch([{
-            'company_id': '1',
+            'company_id': '12345',
             'company_domain': 'nowhere.com',
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }, {
-            'company_id': '2',
+            'company_id': '67890',
             'company_domain': 'acmeinc.com',
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }])
