@@ -192,11 +192,11 @@ A more detailed example is available at [https://github.com/Moesif/moesifdjangoe
 def identifyUser(req, res):
     # if your setup do not use the standard request.user.username
     # return the user id here
-    return "user_id_1"
+    return "my_user_id"
 
 def identifyCompany(req, res):
     # return the company id here
-    return "12345"
+    return "my_company_id"
 
 def should_skip(req, res):
     if "healthprobe" in req.path:
@@ -245,7 +245,8 @@ The metadata field can be any custom data you want to set on the user. The `user
 ```python
 middleware = MoesifMiddleware(None)
 update_user = middleware.update_user({
-    'user_id': 'testpythonapiuser',
+    'user_id': '12345',
+    'company_id': '67890',
     'session_token': 'jkj9324-23489y5324-ksndf8-d9syf8',
     'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
     })
@@ -258,10 +259,12 @@ The metadata field can be any custom data you want to set on the user. The `user
 ```python
 middleware = MoesifMiddleware(None)
 update_users = middleware.update_users_batch([{
-        'user_id': 'testpythonapiuser',
+        'user_id': '12345',
+        'company_id': '67890',
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }, {
-        'user_id': 'testpythonapiuser1',
+        'user_id': '1234',
+        'company_id': '6789',
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }])
 ```
@@ -275,7 +278,7 @@ The metadata field can be any custom data you want to set on the company. The `c
 ```python
 middleware = MoesifMiddleware(None)
 update_company = middleware.update_company({
-    'company_id': '1',
+    'company_id': '12345',
     'company_domain': 'acmeinc.com',
     'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
     })
@@ -288,11 +291,11 @@ The metadata field can be any custom data you want to set on the company. The `c
 ```python
 middleware = MoesifMiddleware(None)
 update_companies = middleware.update_companies_batch([{
-        'company_id': '1',
+        'company_id': '12345',
         'company_domain': 'nowhere.com',
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }, {
-        'company_id': '2',
+        'company_id': '67890',
         'company_domain': 'acmeinc.com',
         'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
     }])
@@ -332,7 +335,7 @@ An example Moesif integration based on quick start tutorials of Django and Djang
 
 ## Other integrations
 
-To view more more documentation on integration options, please visit __[the Integration Options Documentation](https://www.moesif.com/docs/getting-started/integration-options/).__
+To view more documentation on integration options, please visit __[the Integration Options Documentation](https://www.moesif.com/docs/getting-started/integration-options/).__
 
 [ico-built-for]: https://img.shields.io/badge/built%20for-django-blue.svg
 [ico-version]: https://img.shields.io/pypi/v/moesifdjango.svg
