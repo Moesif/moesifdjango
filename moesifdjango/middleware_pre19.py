@@ -68,11 +68,11 @@ class MoesifMiddlewarePre19(object):
 
     def process_request(self, request):
         request.moesif_req_time = timezone.now()
-        if request.META.get('CONTENT_TYPE', None) and not request.META.get('CONTENT_TYPE').startswith('multipart/form-data'):
+        try:
             request._mo_body = request.body
             request._stream = BytesIO(request.body)
             request._read_started = False
-        else:
+        except:
             request._mo_body = None
 
     def process_response(self, request, response):
@@ -153,7 +153,7 @@ class MoesifMiddlewarePre19(object):
                     req_body = json.loads(request._mo_body)
             except:
                 if request._mo_body:
-                    req_body = base64.standard_b64encode(request._mo_body)
+                    req_body = base64.standard_b64encode(request._mo_body).decode(encoding="UTF-8")
                     req_body_transfer_encoding = 'base64'
 
 
@@ -183,7 +183,7 @@ class MoesifMiddlewarePre19(object):
             except:
                 if self.DEBUG:
                     print("could not json parse, so base64 encode")
-                rsp_body = base64.standard_b64encode(response.content).decode()
+                rsp_body = base64.standard_b64encode(response.content).decode(encoding="UTF-8")
                 rsp_body_transfer_encoding = 'base64'
                 if self.DEBUG:
                     print("base64 encoded body: " + str(rsp_body))
