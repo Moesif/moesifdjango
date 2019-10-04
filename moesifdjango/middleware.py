@@ -110,11 +110,11 @@ class moesif_middleware:
 
         req_time = timezone.now()
 
-        if not request.content_type.startswith('multipart/form-data'):
+        try:
             request._mo_body = request.body
             request._stream = BytesIO(request.body)
             request._read_started = False
-        else:
+        except:
             request._mo_body = None
 
         if self.DEBUG:
@@ -190,7 +190,7 @@ class moesif_middleware:
                     req_body = mask_body(req_body, self.middleware_settings.get('REQUEST_BODY_MASKS'))
             except:
                 if request._mo_body:
-                    req_body = base64.standard_b64encode(request._mo_body)
+                    req_body = base64.standard_b64encode(request._mo_body).decode(encoding="UTF-8")
                     req_body_transfer_encoding = 'base64'
 
         ip_address = get_client_ip(request)
@@ -223,7 +223,7 @@ class moesif_middleware:
             except:
                 if self.DEBUG:
                     print("could not json parse, so base64 encode")
-                rsp_body = base64.standard_b64encode(response.content).decode()
+                rsp_body = base64.standard_b64encode(response.content).decode(encoding="UTF-8")
                 rsp_body_transfer_encoding = 'base64'
                 if self.DEBUG:
                     print("base64 encoded body: " + str(rsp_body))
