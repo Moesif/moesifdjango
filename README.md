@@ -248,7 +248,8 @@ update_user = middleware.update_user({
     'user_id': '12345',
     'company_id': '67890',
     'session_token': 'jkj9324-23489y5324-ksndf8-d9syf8',
-    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
+    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'},
+    'campaign': {'utm_source': 'Newsletter', 'utm_medium': 'Email'}
     })
 ```
 
@@ -280,7 +281,8 @@ middleware = MoesifMiddleware(None)
 update_company = middleware.update_company({
     'company_id': '12345',
     'company_domain': 'acmeinc.com',
-    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'}
+    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'},
+    'campaign': {'utm_source': 'Adwords', 'utm_medium': 'Twitter'}
     })
 ```
 
