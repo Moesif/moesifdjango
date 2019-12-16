@@ -189,35 +189,38 @@ _boolean_, set to True to print internal log messages for debugging SDK integrat
 A more detailed example is available at [https://github.com/Moesif/moesifdjangoexample](https://github.com/Moesif/moesifdjangoexample)
 
 ```python
-def identifyUser(req, res):
-    # if your setup do not use the standard request.user.username
-    # return the user id here
-    return "my_user_id"
+def identify_user(req, res):
+    # Your custom code that returns a user id string
+    if req.user and req.user.is_authenticated:
+        return req.user.username
+    else:
+        return None
 
-def identifyCompany(req, res):
-    # return the company id here
-    return "my_company_id"
+def identify_company(req, res):
+    # Your custom code that returns a company id string
+    return "67890"
 
 def should_skip(req, res):
-    if "healthprobe" in req.path:
+    # Your custom code that returns true to skip logging
+    if "health/probe" in req.path:
         return True
     else:
         return False
 
 def get_token(req, res):
-    # if your setup do not use the standard Django method for
-    # setting session tokens. do it here.
-    return "token"
+    # If you don't want to use the standard Django session token,
+    # add your custom code that returns a string for session/API token
+    return "XXXXXXXXXXXXXX"
 
 def mask_event(eventmodel):
-    # do something to remove sensitive fields
-    # be sure not to remove any required fields.
+    # Your custom code to change or remove any sensitive fields
+    eventmodel.response.body.password = None.
     return eventmodel
 
 def get_metadata(req, res):
     return {
-        'foo': '12345',
-        'bar': '23456',
+        'datacenter': 'westus',
+        'deployment_version': 'v1.2.3',
     }
 
 
@@ -225,8 +228,8 @@ MOESIF_MIDDLEWARE = {
     'APPLICATION_ID': 'Your application id',
     'LOCAL_DEBUG': False,
     'LOG_BODY': True,
-    'IDENTIFY_USER': identifyUser,
-    'IDENTIFY_COMPANY': identifyCompany,
+    'IDENTIFY_USER': identify_user,
+    'IDENTIFY_COMPANY': identify_company,
     'GET_SESSION_TOKEN': get_token,
     'SKIP': should_skip,
     'MASK_EVENT_MODEL': mask_event,
@@ -238,69 +241,170 @@ MOESIF_MIDDLEWARE = {
 
 ## Update User
 
-### update_user method
-A method is attached to the moesif middleware object to update the user profile or metadata.
-The metadata field can be any custom data you want to set on the user. The `user_id` field is required.
+### Update A Single User
+Create or update a user profile in Moesif.
+The metadata field can be any customer demographic or other info you want to store.
+Only the `user_id` field is required.
+This method is a convenient helper that calls the Moesif API lib.
+For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-a-user).
 
 ```python
 middleware = MoesifMiddleware(None)
-update_user = middleware.update_user({
-    'user_id': '12345',
-    'company_id': '67890',
-    'session_token': 'jkj9324-23489y5324-ksndf8-d9syf8',
-    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'},
-    'campaign': {'utm_source': 'Newsletter', 'utm_medium': 'Email'}
-    })
+
+# Only user_id is required.
+# Campaign object is optional, but useful if you want to track ROI of acquisition channels
+# See https://www.moesif.com/docs/api#users for campaign schema
+# metadata can be any custom object
+user = {
+  'user_id': '12345',
+  'company_id': '67890', # If set, associate user with a company object
+  'campaign': {
+    'utm_source': 'google',
+    'utm_medium': 'cpc', 
+    'utm_campaign': 'adwords',
+    'utm_term': 'api+tooling',
+    'utm_content': 'landing'
+  },
+  'metadata': {
+    'email': 'john@acmeinc.com',
+    'first_name': 'John',
+    'last_name': 'Doe',
+    'title': 'Software Engineer',
+    'sales_info': {
+        'stage': 'Customer',
+        'lifetime_value': 24000,
+        'account_owner': 'mary@contoso.com'
+    },
+  }
+}
+
+update_user = middleware.update_user(user)
 ```
 
-### update_users_batch method
-A method is attached to the moesif middleware object to update the users profile or metadata in batch.
-The metadata field can be any custom data you want to set on the user. The `user_id` field is required.
+### Update Users in Batch
+Similar to update_user, but used to update a list of users in one batch. 
+Only the `user_id` field is required.
+This method is a convenient helper that calls the Moesif API lib.
+For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-users-in-batch).
 
 ```python
 middleware = MoesifMiddleware(None)
-update_users = middleware.update_users_batch([{
-        'user_id': '12345',
-        'company_id': '67890',
-        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
-    }, {
-        'user_id': '1234',
-        'company_id': '6789',
-        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
-    }])
+
+userA = {
+  'user_id': '12345',
+  'company_id': '67890', # If set, associate user with a company object
+  'metadata': {
+    'email': 'john@acmeinc.com',
+    'first_name': 'John',
+    'last_name': 'Doe',
+    'title': 'Software Engineer',
+    'sales_info': {
+        'stage': 'Customer',
+        'lifetime_value': 24000,
+        'account_owner': 'mary@contoso.com'
+    },
+  }
+}
+
+userB = {
+  'user_id': '54321',
+  'company_id': '67890', # If set, associate user with a company object
+  'metadata': {
+    'email': 'mary@acmeinc.com',
+    'first_name': 'Mary',
+    'last_name': 'Jane',
+    'title': 'Software Engineer',
+    'sales_info': {
+        'stage': 'Customer',
+        'lifetime_value': 48000,
+        'account_owner': 'mary@contoso.com'
+    },
+  }
+}
+update_users = middleware.update_users_batch([userA, userB])
 ```
 
 ## Update Company
 
-### update_company method
-A method is attached to the moesif middleware object to update the company profile or metadata.
-The metadata field can be any custom data you want to set on the company. The `company_id` field is required.
+### Update A Single Company
+Create or update a company profile in Moesif.
+The metadata field can be any company demographic or other info you want to store.
+Only the `company_id` field is required.
+This method is a convenient helper that calls the Moesif API lib.
+For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-a-company).
 
 ```python
 middleware = MoesifMiddleware(None)
-update_company = middleware.update_company({
-    'company_id': '12345',
-    'company_domain': 'acmeinc.com',
-    'metadata': {'email': 'abc@email.com', 'name': 'abcde', 'image': '1234'},
-    'campaign': {'utm_source': 'Adwords', 'utm_medium': 'Twitter'}
-    })
+
+# Only company_id is required.
+# Campaign object is optional, but useful if you want to track ROI of acquisition channels
+# See https://www.moesif.com/docs/api#update-a-company for campaign schema
+# metadata can be any custom object
+company = {
+  'company_id': '67890',
+  'company_domain': 'acmeinc.com', # If domain is set, Moesif will enrich your profiles with publicly available info 
+  'campaign': {
+    'utm_source': 'google',
+    'utm_medium': 'cpc', 
+    'utm_campaign': 'adwords',
+    'utm_term': 'api+tooling',
+    'utm_content': 'landing'
+  },
+  'metadata': {
+    'org_name': 'Acme, Inc',
+    'plan_name': 'Free',
+    'deal_stage': 'Lead',
+    'mrr': 24000,
+    'demographics': {
+        'alexa_ranking': 500000,
+        'employee_count': 47
+    },
+  }
+}
+
+update_company = middleware.update_company(company)
 ```
 
-### update_companies_batch method
-A method is attached to the moesif middleware object to update the companies profile or metadata in batch.
-The metadata field can be any custom data you want to set on the company. The `company_id` field is required.
+### Update Companies in Batch
+Similar to update_company, but used to update a list of companies in one batch. 
+Only the `company_id` field is required.
+This method is a convenient helper that calls the Moesif API lib.
+For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-companies-in-batch).
 
 ```python
 middleware = MoesifMiddleware(None)
-update_companies = middleware.update_companies_batch([{
-        'company_id': '12345',
-        'company_domain': 'nowhere.com',
-        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
-    }, {
-        'company_id': '67890',
-        'company_domain': 'acmeinc.com',
-        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
-    }])
+
+companyA = {
+  'company_id': '67890',
+  'company_domain': 'acmeinc.com', # If domain is set, Moesif will enrich your profiles with publicly available info 
+  'metadata': {
+    'org_name': 'Acme, Inc',
+    'plan_name': 'Free',
+    'deal_stage': 'Lead',
+    'mrr': 24000,
+    'demographics': {
+        'alexa_ranking': 500000,
+        'employee_count': 47
+    },
+  }
+}
+
+companyB = {
+  'company_id': '09876',
+  'company_domain': 'contoso.com', # If domain is set, Moesif will enrich your profiles with publicly available info 
+  'metadata': {
+    'org_name': 'Contoso, Inc',
+    'plan_name': 'Free',
+    'deal_stage': 'Lead',
+    'mrr': 48000,
+    'demographics': {
+        'alexa_ranking': 500000,
+        'employee_count': 53
+    },
+  }
+}
+
+update_companies = middleware.update_companies_batch([userA, userB])
 ```
 
 ## Tested versions
