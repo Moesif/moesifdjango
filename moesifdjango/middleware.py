@@ -9,7 +9,7 @@ import re
 import django
 import logging
 import random
-
+import math
 from django.conf import settings
 from django.utils import timezone
 from moesifapi.moesif_api_client import *
@@ -296,7 +296,8 @@ class moesif_middleware:
                                  user_id=username,
                                  company_id=company_id,
                                  session_token=session_token,
-                                 metadata=metadata)
+                                 metadata=metadata,
+                                 direction="Incoming")
 
         try:
             mask_event_model = self.middleware_settings.get('MASK_EVENT_MODEL', None)
@@ -333,7 +334,7 @@ class moesif_middleware:
                         if self.DEBUG:
                             print("Error while adding event to the queue")
                 if self.DEBUG:
-                    print("sent done")
+                    print("Event sent successfully")
             except APIException as inst:
                 if 401 <= inst.response_code <= 403:
                     print("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
@@ -345,6 +346,7 @@ class moesif_middleware:
 
         self.sampling_percentage = self.app_config.get_sampling_percentage(self.config, username, company_id)
         if self.sampling_percentage >= random_percentage:
+            event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
             if CELERY:
                 sending_event()
             else:
