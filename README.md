@@ -202,10 +202,7 @@ def identify_company(req, res):
 
 def should_skip(req, res):
     # Your custom code that returns true to skip logging
-    if "health/probe" in req.path:
-        return True
-    else:
-        return False
+    return "health/probe" in req.path
 
 def get_token(req, res):
     # If you don't want to use the standard Django session token,
@@ -214,7 +211,8 @@ def get_token(req, res):
 
 def mask_event(eventmodel):
     # Your custom code to change or remove any sensitive fields
-    eventmodel.response.body.password = None.
+    if 'password' in eventmodel.response.body:
+        eventmodel.response.body['password'] = None
     return eventmodel
 
 def get_metadata(req, res):
