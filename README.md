@@ -118,18 +118,6 @@ to add custom metadata that will be associated with the event. The metadata must
 #### __`MASK_EVENT_MODEL`__
 (optional) _(EventModel) => EventModel_, a function that takes an EventModel and returns an EventModel with desired data removed. Use this if you prefer to write your own mask function than use the string based filter options: REQUEST_BODY_MASKS, REQUEST_HEADER_MASKS, RESPONSE_BODY_MASKS, & RESPONSE_HEADER_MASKS. The return value must be a valid EventModel required by Moesif data ingestion API. For details regarding EventModel please see the [Moesif Python API Documentation](https://www.moesif.com/docs/api?python).
 
-#### __`REQUEST_HEADER_MASKS`__
-(deprecated), _string[]_, is a list of strings for headers that you want to hide from Moesif. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
-
-#### __`REQUEST_BODY_MASKS`__
-(deprecated), _string[]_, is a list of key values in the body that you want to hide from Moesif. All key values in the body will be recursively removed before sending to Moesif. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
-
-#### __`RESPONSE_HEADER_MASKS`__
-(deprecated), _string[]_, performs the same function for response headers. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
-
-#### __`RESPONSE_BODY_MASKS`__
-(deprecated), _string[]_, performs the same task for response body. Will be removed in future version. Replaced by the function based 'MASK_EVENT_MODEL' for additional flexibility.
-
 ### Options specific to outgoing API calls 
 
 #### __`CAPTURE_OUTGOING_REQUESTS`__
