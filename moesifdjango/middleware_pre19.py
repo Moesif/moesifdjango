@@ -24,6 +24,10 @@ from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
 from .app_config import AppConfig
+from .parse_body import ParseBody
+from .update_companies import Company
+from .update_users import User
+from .client_ip import ClientIp
 import uuid
 
 class MoesifMiddlewarePre19(object):
@@ -53,6 +57,10 @@ class MoesifMiddlewarePre19(object):
         self.regex_content_type   = re.compile(r'^CONTENT_TYPE$')
         self.regex_content_length = re.compile(r'^CONTENT_LENGTH$')
         self.app_config = AppConfig()
+        self.parse_body = ParseBody()
+        self.client_ip = ClientIp()
+        self.user = User()
+        self.company = Company()
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
         self.sampling_percentage = 100
         self.config_etag = None
@@ -144,20 +152,18 @@ class MoesifMiddlewarePre19(object):
 
         req_body = None
         req_body_transfer_encoding = None
-        if self.LOG_BODY:
-            try:
-                # print("about to serialize request body" + request.body)
-                if self.DEBUG:
-                    print("about to process request body")
-                if request._mo_body:
-                    req_body = json.loads(request._mo_body)
-            except:
-                if request._mo_body:
-                    req_body = base64.standard_b64encode(request._mo_body).decode(encoding="UTF-8")
-                    req_body_transfer_encoding = 'base64'
+        if self.LOG_BODY and request._mo_body:
+            if isinstance(request._mo_body, str):
+                req_body, req_body_transfer_encoding = self.parse_body.parse_string_body(request._mo_body,
+                                                                                         self.parse_body.transform_headers(req_headers),
+                                                                                         self.middleware_settings.get('REQUEST_BODY_MASKS'))
+            else:
+                req_body, req_body_transfer_encoding = self.parse_body.parse_bytes_body(request._mo_body,
+                                                                                        self.parse_body.transform_headers(req_headers),
+                                                                                        self.middleware_settings.get('REQUEST_BODY_MASKS'))
 
 
-        ip_address = get_client_ip(request)
+        ip_address = self.client_ip.get_client_ip(request)
         uri = request.scheme + "://" + request.get_host() + request.get_full_path()
 
         def mapper(key):
@@ -173,20 +179,14 @@ class MoesifMiddlewarePre19(object):
         rsp_body = None
         rsp_body_transfer_encoding = None
         if self.LOG_BODY and isinstance(response, HttpResponse) and response.content:
-            if self.DEBUG:
-                print("about to process response")
-                print(response.content)
-            try:
-                rsp_body = json.loads(response.content)
-                if self.DEBUG:
-                    print("jason parsed succesfully")
-            except:
-                if self.DEBUG:
-                    print("could not json parse, so base64 encode")
-                rsp_body = base64.standard_b64encode(response.content).decode(encoding="UTF-8")
-                rsp_body_transfer_encoding = 'base64'
-                if self.DEBUG:
-                    print("base64 encoded body: " + str(rsp_body))
+            if isinstance(response.content, str):
+                rsp_body, rsp_body_transfer_encoding = self.parse_body.parse_string_body(response.content,
+                                                                                         self.parse_body.transform_headers(rsp_headers),
+                                                                                         self.middleware_settings.get('RESPONSE_BODY_MASKS'))
+            else:
+                rsp_body, rsp_body_transfer_encoding = self.parse_body.parse_bytes_body(response.content,
+                                                                                        self.parse_body.transform_headers(rsp_headers),
+                                                                                        self.middleware_settings.get('RESPONSE_BODY_MASKS'))
 
 
         rsp_time = timezone.now()
@@ -308,13 +308,13 @@ class MoesifMiddlewarePre19(object):
         return response
 
     def update_user(self, user_profile):
-        update_user(user_profile, self.api_client, self.DEBUG)
+        self.user.update_user(user_profile, self.api_client, self.DEBUG)
 
     def update_users_batch(self, user_profiles):
-        update_users_batch(user_profiles, self.api_client, self.DEBUG)
+        self.user.update_users_batch(user_profiles, self.api_client, self.DEBUG)
 
     def update_company(self, company_profile):
-        update_company(company_profile, self.api_client, self.DEBUG)
+        self.company.update_company(company_profile, self.api_client, self.DEBUG)
 
     def update_companies_batch(self, companies_profiles):
-        update_companies_batch(companies_profiles, self.api_client, self.DEBUG)
+        self.company.update_companies_batch(companies_profiles, self.api_client, self.DEBUG)
