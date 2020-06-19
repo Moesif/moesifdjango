@@ -221,7 +221,6 @@ class moesif_middleware:
                                                                                          self.parse_body.transform_headers(rsp_headers),
                                                                                          self.middleware_settings.get('RESPONSE_BODY_MASKS'))
             else:
-                print("Response bytes body")
                 rsp_body, rsp_body_transfer_encoding = self.parse_body.parse_bytes_body(response.content,
                                                                                         self.parse_body.transform_headers(rsp_headers),
                                                                                         self.middleware_settings.get('RESPONSE_BODY_MASKS'))
