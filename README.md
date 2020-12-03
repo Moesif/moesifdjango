@@ -7,7 +7,7 @@
 [![Source Code][ico-source]][link-source]
 
 Django middleware to log _incoming_ API calls hitting your own service or _outgoing_ API calls 
-going out to third parties and sends to [Moesif](https://www.moesif.com) for API analytics and log analysis. 
+going out to third parties and sends to [Moesif](https://www.moesif.com) for API analytics and monitoring 
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
@@ -120,9 +120,19 @@ to add custom metadata that will be associated with the event. The metadata must
 
 ### Options specific to outgoing API calls 
 
+The options below are applicable to outgoing API calls (calls you initiate using the Python [Requests](http://docs.python-requests.org/en/master/) lib to third parties like Stripe or to your own services.
+
+For options that use the request and response as input arguments, these use the [Requests](http://docs.python-requests.org/en/master/api/) lib's request or response objects.
+
+If you are not using Django, you can import the [moesifpythonrequest](https://github.com/Moesif/moesifpythonrequest) directly.
+
 #### __`CAPTURE_OUTGOING_REQUESTS`__
-_boolean_, Default False. Set to True to capture all outgoing API calls from your app to third parties like Stripe or to your own dependencies while using [Requests](http://docs.python-requests.org/en/master/) library. The options below is applied to outgoing API calls.
-When the request is outgoing, for options functions that take request and response as input arguments, the request and response objects passed in are [Requests](http://docs.python-requests.org/en/master/api/) request or response objects.
+_boolean_, Default False. Set to True to capture all outgoing API calls. False will disable this functionality. 
+
+##### __`GET_METADATA_OUTGOING`__
+(optional) _(req, res) => dictionary_, a function that enables you to return custom metadata associated with the logged API calls. 
+Takes in the [Requests](http://docs.python-requests.org/en/master/api/) request and response object as arguments. You should implement a function that 
+returns a dictionary containing your custom metadata. (must be able to be encoded into JSON). For example, you may want to save a VM instance_id, a trace_id, or a resource_id with the request.
 
 ##### __`SKIP_OUTGOING`__
 (optional) _(req, res) => boolean_, a function that takes a [Requests](http://docs.python-requests.org/en/master/api/) request and response,
@@ -134,11 +144,6 @@ but different frameworks and your implementation might be very different, it wou
 
 ##### __`IDENTIFY_COMPANY_OUTGOING`__
 (optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the company id for this event.
-
-##### __`GET_METADATA_OUTGOING`__
-(optional) _(req, res) => dictionary_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and
-returns a dictionary (must be able to be encoded into JSON). This allows
-to associate this event with custom metadata. For example, you may want to save a VM instance_id, a trace_id, or a tenant_id with the request.
 
 ##### __`GET_SESSION_TOKEN_OUTGOING`__
 (optional) _(req, res) => string_, a function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response, and returns a string that is the session token for this event. Again, Moesif tries to get the session token automatically, but if you setup is very different from standard, this function will be very help for tying events together, and help you replay the events.
