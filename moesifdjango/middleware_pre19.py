@@ -2,10 +2,6 @@ from __future__ import print_function
 
 import requests
 import threading
-import copy
-import json
-import base64
-import re
 import random
 import math
 from django.conf import settings
@@ -16,7 +12,7 @@ from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
-from .masks import *
+from .masks import MaskData
 from .client_ip import *
 from .update_users import *
 from .update_companies import *
@@ -28,7 +24,8 @@ from .parse_body import ParseBody
 from .update_companies import Company
 from .update_users import User
 from .client_ip import ClientIp
-import uuid
+from .logger_helper import LoggerHelper
+from .event_mapper import EventMapper
 
 class MoesifMiddlewarePre19(object):
 
@@ -53,12 +50,12 @@ class MoesifMiddlewarePre19(object):
         self.api_client = self.client.api
         response_catcher = HttpResponseCatcher()
         self.api_client.http_call_back = response_catcher
-        self.regex_http_          = re.compile(r'^HTTP_.+$')
-        self.regex_content_type   = re.compile(r'^CONTENT_TYPE$')
-        self.regex_content_length = re.compile(r'^CONTENT_LENGTH$')
         self.app_config = AppConfig()
         self.parse_body = ParseBody()
         self.client_ip = ClientIp()
+        self.logger_helper = LoggerHelper()
+        self.event_mapper = EventMapper()
+        self.mask_helper = MaskData()
         self.user = User()
         self.company = Company()
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
@@ -74,7 +71,8 @@ class MoesifMiddlewarePre19(object):
                 print('Error while parsing application configuration on initialization')
         self.transaction_id = None
 
-    def process_request(self, request):
+    @classmethod
+    def process_request(cls, request):
         request.moesif_req_time = timezone.now()
         try:
             request._mo_body = request.body
@@ -96,179 +94,67 @@ class MoesifMiddlewarePre19(object):
         # Code to be executed for each request/response after
         # the view is called.
 
-        try:
-            skip_event = self.middleware_settings.get('SKIP', None)
-            if skip_event is not None:
-                if skip_event(request, response):
-                    return response
-        except:
-            if self.DEBUG:
-                print("Having difficulty executing skip_event function. Please check moesif settings.")
-
-        req_headers = {}
-        regex_http_start = re.compile('^HTTP_')
-        try:
-            for header in request.META:
-                if self.regex_http_.match(header) or self.regex_content_type.match(header) or self.regex_content_length.match(header):
-                    normalized_header = regex_http_start.sub('', header)
-                    normalized_header = normalized_header.replace('_', '-')
-                    req_headers[normalized_header] = request.META[header]
-        except Exception as inst:
-            if self.DEBUG:
-                print("error encountered while copying request header")
-                print(inst)
-            req_headers = {}
-
-        if self.DEBUG:
-            print("about to print what is in meta %d " % len(request.META))
-            for x in request.META:
-                print (x, ':', request.META[x])
-            print("about to print headers %d " % len(req_headers))
-            for x in req_headers:
-                print (x, ':', req_headers[x])
-
-
-        def flatten_to_string(value):
-            if type(value) == str:
-                return value
-            if value is None:
-                return ''
-            return APIHelper.json_serialize(value)
-
-        req_headers = {k: flatten_to_string(v) for k, v in req_headers.items()}
+        # Check if need to skip logging event
+        skip_event_response = self.logger_helper.skip_event(request, response, self.middleware_settings, self.DEBUG)
+        if skip_event_response:
+            return skip_event_response
+        # Request headers
+        req_headers = self.logger_helper.parse_request_headers(request, self.middleware_settings, self.DEBUG)
 
         # Add transaction id to request headers
-        capture_transaction_id = self.middleware_settings.get('DISABLE_TRANSACTION_ID', False)
-        if not capture_transaction_id:
-            req_trans_id = req_headers.get("X-MOESIF-TRANSACTION-ID", None)
-            if req_trans_id:
-                self.transaction_id = req_trans_id
-                if not self.transaction_id:
-                    self.transaction_id = str(uuid.uuid4())
-            else:
-                self.transaction_id = str(uuid.uuid4())
-            # Add transaction id to the request header
-            req_headers["X-MOESIF-TRANSACTION-ID"] = self.transaction_id
+        req_headers, self.transaction_id = self.logger_helper.add_transaction_id_to_header(req_headers, self.transaction_id,
+                                                                                      self.middleware_settings)
 
-        req_body = None
-        req_body_transfer_encoding = None
-        if self.LOG_BODY and request._mo_body:
-            if isinstance(request._mo_body, str):
-                req_body, req_body_transfer_encoding = self.parse_body.parse_string_body(request._mo_body,
-                                                                                         self.parse_body.transform_headers(req_headers),
-                                                                                         self.middleware_settings.get('REQUEST_BODY_MASKS'))
-            else:
-                req_body, req_body_transfer_encoding = self.parse_body.parse_bytes_body(request._mo_body,
-                                                                                        self.parse_body.transform_headers(req_headers),
-                                                                                        self.middleware_settings.get('REQUEST_BODY_MASKS'))
-
-
+        # Prepare Request Body
+        req_body, req_body_transfer_encoding = self.logger_helper.prepare_request_body(request, req_headers,
+                                                                                       self.LOG_BODY,
+                                                                                       self.middleware_settings)
+        # Fetch Ip Address
         ip_address = self.client_ip.get_client_ip(request)
-        uri = request.scheme + "://" + request.get_host() + request.get_full_path()
 
-        def mapper(key):
-            return copy.deepcopy(response[key])
+        # Request URI
+        uri = self.logger_helper.request_url(request)
 
         # Add transaction id to request headers
         if self.transaction_id:
             response._headers["x-moesif-transaction-id"] = ("X-Moesif-Transaction-Id", self.transaction_id)
 
-        # a little hacky, using _headers, which is intended as a private variable.
-        rsp_headers = {k: mapper(k) for k, v in response._headers.items()}
+        # Parse Response headers
+        rsp_headers = self.logger_helper.parse_response_headers(response, self.middleware_settings)
 
-        rsp_body = None
-        rsp_body_transfer_encoding = None
-        if self.LOG_BODY and isinstance(response, HttpResponse) and response.content:
-            if isinstance(response.content, str):
-                rsp_body, rsp_body_transfer_encoding = self.parse_body.parse_string_body(response.content,
-                                                                                         self.parse_body.transform_headers(rsp_headers),
-                                                                                         self.middleware_settings.get('RESPONSE_BODY_MASKS'))
-            else:
-                rsp_body, rsp_body_transfer_encoding = self.parse_body.parse_bytes_body(response.content,
-                                                                                        self.parse_body.transform_headers(rsp_headers),
-                                                                                        self.middleware_settings.get('RESPONSE_BODY_MASKS'))
+        # Prepare Response Body
+        rsp_body, rsp_body_transfer_encoding = self.logger_helper.prepare_response_body(response, rsp_headers,
+                                                                                        self.LOG_BODY,
+                                                                                        self.middleware_settings)
 
-
+        # Response Time
         rsp_time = timezone.now()
 
-        event_req = EventRequestModel(time=req_time.isoformat(),
-                                      uri=uri,
-                                      verb=request.method,
-                                      api_version=self.api_version,
-                                      ip_address=ip_address,
-                                      headers=req_headers,
-                                      body=req_body,
-                                      transfer_encoding=req_body_transfer_encoding)
+        # Prepare Event Request Model
+        event_req = self.event_mapper.to_request(req_time.isoformat(), uri, request.method, self.api_version,
+                                                 ip_address, req_headers, req_body, req_body_transfer_encoding)
 
-        event_rsp = EventResponseModel(time=rsp_time.isoformat(),
-                                       status=response.status_code,
-                                       headers=rsp_headers,
-                                       body=rsp_body,
-                                       transfer_encoding=rsp_body_transfer_encoding)
+        # Prepare Event Response Model
+        event_rsp = self.event_mapper.to_response(rsp_time.isoformat(), response.status_code, rsp_headers, rsp_body,
+                                                  rsp_body_transfer_encoding)
 
-        username = None
-        try:
-            username = request.user.username
-        except:
-            username = None
+        # User Id
+        user_id = self.logger_helper.get_user_id(self.middleware_settings, request, response, req_headers, self.DEBUG)
 
-        try:
-            identify_user = self.middleware_settings.get('IDENTIFY_USER', None)
-            if identify_user is not None:
-                username = identify_user(request, response)
-        except:
-            if self.DEBUG:
-                print("can not execute identify_user function, please check moesif settings.")
+        # Company Id
+        company_id = self.logger_helper.get_company_id(self.middleware_settings, request, response, self.DEBUG)
 
-        company_id = None
-        try:
-            identify_company = self.middleware_settings.get('IDENTIFY_COMPANY', None)
-            if identify_company is not None:
-                company_id = identify_company(request, response)
-        except:
-            if self.DEBUG:
-                print("can not execute identify_company function, please check moesif settings.")
+        # Event Metadata
+        metadata = self.logger_helper.get_metadata(self.middleware_settings, request, response, self.DEBUG)
 
-        metadata = None
-        try:
-            get_metadata = self.middleware_settings.get('GET_METADATA', None)
-            if get_metadata is not None:
-                metadata = get_metadata(request, response)
-        except:
-            if self.DEBUG:
-                print("can not execute get_metadata function, please check moesif settings.")
+        # Session Token
+        session_token = self.logger_helper.get_session_token(self.middleware_settings, request, response, self.DEBUG)
 
+        # Prepare Event Model
+        event_model = self.event_mapper.to_event(event_req, event_rsp, user_id, company_id, session_token, metadata)
 
-        session_token = None
-        try:
-            session_token = request.session.session_key
-        except:
-            session_token = None
-
-        try:
-            get_session_token = self.middleware_settings.get('GET_SESSION_TOKEN', None)
-            if get_session_token is not None:
-                session_token = get_session_token(request, response)
-        except:
-            if self.DEBUG:
-                print("Can not execute get_session_token function. Please check moesif settings.")
-
-
-        event_model = EventModel(request=event_req,
-                                 response=event_rsp,
-                                 user_id=username,
-                                 company_id=company_id,
-                                 session_token=session_token,
-                                 metadata=metadata,
-                                 direction="Incoming")
-
-        try:
-            mask_event_model = self.middleware_settings.get('MASK_EVENT_MODEL', None)
-            if mask_event_model is not None:
-                event_model = mask_event_model(event_model)
-        except:
-            if self.DEBUG:
-                print("Can not execute MASK_EVENT_MODEL function. Please check moesif settings.")
+        # Mask Event Model
+        event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)
 
         def sending_event():
             if self.DEBUG:
@@ -298,7 +184,7 @@ class MoesifMiddlewarePre19(object):
 
         random_percentage = random.random() * 100
 
-        self.sampling_percentage = self.app_config.get_sampling_percentage(self.config, username, company_id)
+        self.sampling_percentage = self.app_config.get_sampling_percentage(self.config, user_id, company_id)
         if self.sampling_percentage >= random_percentage:
             event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
             # send the event to moesif via background so not blocking

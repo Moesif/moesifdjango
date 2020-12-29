@@ -5,7 +5,11 @@ from moesifapi.exceptions.api_exception import *
 # Application Configuration
 class AppConfig:
 
-    def get_config(self, api_client, debug):
+    def __init__(self):
+        pass
+
+    @classmethod
+    def get_config(cls, api_client, debug):
         """Get Config"""
         try:
             config_api_response = api_client.get_app_config()
@@ -21,8 +25,8 @@ class AppConfig:
                 print("Error getting application configuration:")
                 print(str(ex))
 
-
-    def parse_configuration(self, config, debug):
+    @classmethod
+    def parse_configuration(cls, config, debug):
         """Parse configuration object and return Etag, sample rate and last updated time"""
         try:
             return config.headers.get("X-Moesif-Config-ETag"), json.loads(config.raw_body).get('sample_rate', 100), datetime.utcnow()
@@ -31,7 +35,8 @@ class AppConfig:
                 print('Error while parsing the configuration object, setting the sample rate to default')
             return None, 100, datetime.utcnow()
 
-    def get_sampling_percentage(self, config, user_id, company_id):
+    @classmethod
+    def get_sampling_percentage(cls, config, user_id, company_id):
         """Get sampling percentage"""
 
         if config is not None:

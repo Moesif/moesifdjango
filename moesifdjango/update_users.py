@@ -5,7 +5,11 @@ from moesifapi.api_helper import *
 
 class User:
 
-    def update_user(self, user_profile, api_client, DEBUG):
+    def __init__(self):
+        pass
+
+    @classmethod
+    def update_user(cls, user_profile, api_client, DEBUG):
         if not user_profile:
             print('Expecting the input to be either of the type - UserModel, dict or json while updating user')
         else:
@@ -57,7 +61,8 @@ class User:
                 except:
                     print('Error while deserializing the json, please make sure the json is valid')
 
-    def update_users_batch(self, user_profiles, api_client, DEBUG):
+    @classmethod
+    def update_users_batch(cls, user_profiles, api_client, DEBUG):
         if not user_profiles:
             print('Expecting the input to be either of the type - List of UserModel, dict or json while updating users')
         else:

@@ -82,8 +82,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Enable these in order to use the admin application.
+MIDDLEWARE = [
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware'
+]
+
 MOESIF_MIDDLEWARE = {
-    'APPLICATION_ID': 'Your Application Id',
+    'APPLICATION_ID': 'Your Moesif Application Id',
     'REQUEST_HEADER_MASKS': ['header1', 'header2'],
     'REQUEST_BODY_MASKS': ['body1', 'body2'],
     'RESPONSE_HEADER_MASKS': ['header1', 'header2'],

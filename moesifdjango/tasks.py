@@ -103,7 +103,7 @@ def async_client_create_event(moesif_events_queue, config, config_etag, last_upd
 
 def exit_handler(moesif_events_queue, scheduler):
     try:
-        # Close the close
+        # Close the queue
         moesif_events_queue.close()
         # Shut down the scheduler
         scheduler.shutdown()
