@@ -124,8 +124,8 @@ class LoggerHelper:
         return token
 
     @classmethod
-    def fetch_token(cls, request_headers, auth_header_name, token_type):
-        return request_headers[auth_header_name].split(token_type, 1)[1].strip()
+    def fetch_token(cls, token, token_type):
+        return token.split(token_type, 1)[1].strip()
 
     @classmethod
     def split_token(cls, token):
@@ -141,6 +141,8 @@ class LoggerHelper:
             base64_decode = self.transform_token(base64_decode)
             # Convert the payload to json
             json_decode = json.loads(base64_decode)
+            # Convert keys to lowercase
+            json_decode = {k.lower(): v for k, v in json_decode.items()}
             # Check if field is present in the body
             if field in json_decode:
                 # Fetch user Id
@@ -164,27 +166,42 @@ class LoggerHelper:
                     # Transform request headers keys to lower case
                     request_headers = {k.lower(): v for k, v in request_headers.items()}
                     # Fetch the auth header name from the config
-                    auth_header_name = middleware_settings.get('AUTHORIZATION_HEADER_NAME', 'authorization').lower()
+                    auth_header_names = middleware_settings.get('AUTHORIZATION_HEADER_NAME', 'authorization').lower()
+                    # Split authorization header name by comma
+                    auth_header_names = [x.strip() for x in auth_header_names.split(',')]
+                    # Fetch the header name available in the request header
+                    token = None
+                    for auth_name in auth_header_names:
+                        # Check if the auth header name in request headers
+                        if auth_name in request_headers:
+                            # Fetch the token from the request headers
+                            token = request_headers[auth_name]
+                            # Split the token by comma
+                            token = [x.strip() for x in token.split(',')]
+                            # Fetch the first available header
+                            if len(token) >= 1:
+                                token = token[0]
+                            else:
+                                token = None
+                            break
                     # Fetch the field from the config
-                    field = middleware_settings.get('AUTHORIZATION_USER_ID_FIELD', 'sub')
+                    field = middleware_settings.get('AUTHORIZATION_USER_ID_FIELD', 'sub').lower()
                     # Check if the auth header name in request headers
-                    if auth_header_name in request_headers:
-                        # Fetch the token from the request headers
-                        token = request_headers[auth_header_name]
+                    if token:
                         # Check if token is of type Bearer
                         if 'Bearer' in token:
                             # Fetch the bearer token
-                            token = self.fetch_token(request_headers, auth_header_name, 'Bearer')
+                            token = self.fetch_token(token, 'Bearer')
                             # Split the bearer token by dot(.)
                             split_token = self.split_token(token)
                             # Check if payload is not None
-                            if split_token[1]:
+                            if len(split_token) >= 3 and split_token[1]:
                                 # Parse and set user Id
                                 user_id = self.parse_authorization_header(split_token[1], field, debug)
                         # Check if token is of type Basic
                         elif 'Basic' in token:
                             # Fetch the basic token
-                            token = self.fetch_token(request_headers, auth_header_name, 'Basic')
+                            token = self.fetch_token(token, 'Basic')
                             # Decode the token
                             decoded_token = base64.b64decode(token)
                             # Transform token to string to be compatible with Python 2 and 3
