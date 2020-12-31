@@ -5,7 +5,11 @@ from moesifapi.api_helper import *
 
 class Company:
 
-    def update_company(self, company_profile, api_client, DEBUG):
+    def __init__(self):
+        pass
+
+    @classmethod
+    def update_company(cls, company_profile, api_client, DEBUG):
         if not company_profile:
             print('Expecting the input to be either of the type - CompanyModel, dict or json while updating user')
         else:
@@ -57,7 +61,8 @@ class Company:
                 except:
                     print('Error while deserializing the json, please make sure the json is valid')
 
-    def update_companies_batch(self, companies_profiles, api_client, DEBUG):
+    @classmethod
+    def update_companies_batch(cls, companies_profiles, api_client, DEBUG):
         if not companies_profiles:
             print('Expecting the input to be either of the type - List of CompanyModel, dict or json while updating users')
         else:

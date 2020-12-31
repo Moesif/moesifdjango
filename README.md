@@ -118,6 +118,12 @@ to add custom metadata that will be associated with the event. The metadata must
 #### __`MASK_EVENT_MODEL`__
 (optional) _(EventModel) => EventModel_, a function that takes an EventModel and returns an EventModel with desired data removed. Use this if you prefer to write your own mask function than use the string based filter options: REQUEST_BODY_MASKS, REQUEST_HEADER_MASKS, RESPONSE_BODY_MASKS, & RESPONSE_HEADER_MASKS. The return value must be a valid EventModel required by Moesif data ingestion API. For details regarding EventModel please see the [Moesif Python API Documentation](https://www.moesif.com/docs/api?python).
 
+#### __`AUTHORIZATION_HEADER_NAME`__
+(optional) _string_, A request header field name used to identify the User in Moesif. Default value is `authorization`. Also, supports a comma separated string. We will check headers in order like `"X-Api-Key,Authorization"`.
+
+#### __`AUTHORIZATION_USER_ID_FIELD`__
+(optional) _string_, A field name used to parse the User from authorization header in Moesif. Default value is `sub`.
+
 ### Options specific to outgoing API calls 
 
 The options below are applicable to outgoing API calls (calls you initiate using the Python [Requests](http://docs.python-requests.org/en/master/) lib to third parties like Stripe or to your own services.
