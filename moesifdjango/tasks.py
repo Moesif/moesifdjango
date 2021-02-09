@@ -117,9 +117,10 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
         try:
             from apscheduler.schedulers.background import BackgroundScheduler
             from apscheduler.triggers.interval import IntervalTrigger
-            import atexit
             from kombu import Connection
             from kombu.exceptions import ChannelError
+            import atexit
+            import logging
 
             scheduler = BackgroundScheduler(daemon=True)
             scheduler.start()
@@ -133,6 +134,9 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
                     id='moesif_events_batch_job',
                     name='Schedule events batch job every 5 second',
                     replace_existing=True)
+
+                # Avoid passing logging message to the ancestor loggers
+                logging.getLogger('apscheduler.executors.default').propagate = False
 
                 # Exit handler when exiting the app
                 atexit.register(lambda: exit_handler(moesif_events_queue, scheduler))
