@@ -12,31 +12,15 @@ from .http_response_catcher import HttpResponseCatcher
 from celery import shared_task
 from moesifapi.moesif_api_client import MoesifAPIClient
 from moesifapi.models import EventModel
-from .app_config import AppConfig
-from datetime import datetime, timedelta
 
+# Initialization
 middleware_settings = settings.MOESIF_MIDDLEWARE
 client = MoesifAPIClient(middleware_settings.get('APPLICATION_ID'))
 BATCH_SIZE = settings.MOESIF_MIDDLEWARE.get('BATCH_SIZE', 25)
 DEBUG = middleware_settings.get('LOCAL_DEBUG', False)
-
 api_client = client.api
 response_catcher = HttpResponseCatcher()
 api_client.http_call_back = response_catcher
-
-def get_config():
-    app_config = AppConfig()
-    config = app_config.get_config(api_client, DEBUG)
-    sampling_percentage = 100
-    config_etag = None
-    last_updated_time = datetime.utcnow()
-    try:
-        if config:
-            config_etag, sampling_percentage, last_updated_time = app_config.parse_configuration(config, DEBUG)
-    except:
-        if DEBUG:
-            print('Error while parsing application configuration on initialization')
-    return config, config_etag, sampling_percentage, last_updated_time
 
 try:
     get_broker_url = settings.BROKER_URL
@@ -60,7 +44,7 @@ def queue_get_all(queue_events):
     return events
 
 @shared_task(ignore_result=True)
-def async_client_create_event(moesif_events_queue, config, config_etag, last_updated_time):
+def async_client_create_event(moesif_events_queue):
     batch_events = []
     try:
         queue_size = moesif_events_queue.qsize()
@@ -78,28 +62,19 @@ def async_client_create_event(moesif_events_queue, config, config_etag, last_upd
             print("No message to read from the queue")
 
     if batch_events:
-        if DEBUG:
-            print("Sending events to Moesif")
-        batch_events_api_response = api_client.create_events_batch(batch_events)
-        batch_events_response_config_etag = batch_events_api_response.get("X-Moesif-Config-ETag")
-        if batch_events_response_config_etag is not None \
-                and config_etag is not None \
-                and config_etag != batch_events_response_config_etag \
-                and datetime.utcnow() > last_updated_time + timedelta(minutes=5):
-
-            try:
-                config = config.get_config(api_client, DEBUG)
-                config_etag, sampling_percentage, last_updated_time = config.parse_configuration(
-                    config, DEBUG)
-            except:
-                if DEBUG:
-                    print('Error while updating the application configuration')
-        if DEBUG:
-            print("Events sent successfully")
+        try:
+            if DEBUG:
+                print("Sending events to Moesif")
+            api_client.create_events_batch(batch_events)
+            if DEBUG:
+                print("Events sent successfully")
+        except Exception as ex:
+            if DEBUG:
+                print("Error sending events to Moesif")
+                print(str(ex))
     else:
         if DEBUG:
             print("No events to send")
-
 
 def exit_handler(moesif_events_queue, scheduler):
     try:
@@ -124,18 +99,18 @@ if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
 
             scheduler = BackgroundScheduler(daemon=True)
             scheduler.start()
-            config, config_etag, sampling_percentage, last_updated_time = get_config()
             try:
                 conn = Connection(BROKER_URL)
                 moesif_events_queue = conn.SimpleQueue('moesif_events_queue')
                 scheduler.add_job(
-                    func=lambda: async_client_create_event(moesif_events_queue, config, config_etag, last_updated_time),
+                    func=lambda: async_client_create_event(moesif_events_queue),
                     trigger=IntervalTrigger(seconds=5),
                     id='moesif_events_batch_job',
                     name='Schedule events batch job every 5 second',
                     replace_existing=True)
 
                 # Avoid passing logging message to the ancestor loggers
+                logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
                 logging.getLogger('apscheduler.executors.default').propagate = False
 
                 # Exit handler when exiting the app
