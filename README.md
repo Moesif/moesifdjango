@@ -13,9 +13,6 @@ going out to third parties and sends to [Moesif](https://www.moesif.com) for API
 
 This SDK uses the Requests library and will work for Python 2.7 — 3.5.
 
-For high volume APIs, you can [enable Celery](#use_celery) which offloads the logging in a separate task.
-Install celery via `pip install celery` and set `USE_CELERY` to True 
-
 ## How to install
 
 ```shell
@@ -26,7 +23,6 @@ pip install moesifdjango
 
 In your `settings.py` file in your Django project directory, please add `moesifdjango.middleware.moesif_middleware`
 to the MIDDLEWARE array.
-If you plan to use celery as the backend of asynchronous delivered logged requests, you also need to add `moesifdjango` to your `INSTALLED_APPS`.
 
 Because of middleware execution order, it is best to add moesifdjango middleware __below__ SessionMiddleware
 and AuthenticationMiddleware, because they add useful session data that enables deeper error analysis. On the other hand, if you have other middleware that modified response before going out, you may choose to place Moesif middleware __above__ the middleware modifying response. This allows Moesif to see the modifications to the response data and see closer to what is going over the wire.
@@ -87,7 +83,7 @@ After signing up for a Moesif account, your Moesif Application Id will be displa
 
 You can always find your Moesif Application Id at any time by logging 
 into the [_Moesif Portal_](https://www.moesif.com/), click on the top right menu,
-and then clicking _Installation_.
+and then clicking _API Keys_.
 
 ## Configuration options
 
@@ -120,6 +116,9 @@ to add custom metadata that will be associated with the event. The metadata must
 
 #### __`BATCH_SIZE`__
 (optional) __int__, default 25, Maximum batch size when sending to Moesif.
+
+#### __`EVENT_QUEUE_SIZE`__
+(optional) __int__, default 10000, Maximum number of events to hold in queue before sending to Moesif. In case of network issues when not able to connect/send event to Moesif, skips adding new to event to queue to prevent memory overflow.
 
 #### __`AUTHORIZATION_HEADER_NAME`__
 (optional) _string_, A request header field name used to identify the User in Moesif. Default value is `authorization`. Also, supports a comma separated string. We will check headers in order like `"X-Api-Key,Authorization"`.
@@ -160,28 +159,6 @@ but different frameworks and your implementation might be very different, it wou
 ### General options
 ##### __`LOG_BODY_OUTGOING`__
 (optional) _boolean_, default True, Set to False to remove logging request and response body.
-
-#### __`USE_CELERY`__
-_boolean_, Default False. Set to True to use Celery for queuing sending data to Moesif. Check out [Celery documentation](http://docs.celeryproject.org) for more info.
-
-##### How to use Celery
-
-__Because celery is optional, moesifdjango does not prepackage Celery as a dependency.
-Make sure you install celery via `pip install celery`__
-
-Install celery and redis with `pip install "celery[redis]"`
-
-*Please Note:* If you're using Celery 3.1 or earlier, install celery and redis with `pip install celery==3.1.25` and `pip install redis==2.10.6` 
-
-Set the configuration option to `USE_CELERY` to `True`.
-
-```python
-MOESIF_MIDDLEWARE = {
-    'USE_CELERY': True
-}
-```
-
-Start the celery worker with `celery -A <projectName> worker --loglevel=debug`
 
 #### __`LOCAL_DEBUG`__
 _boolean_, set to True to print internal log messages for debugging SDK integration issues.
@@ -234,7 +211,6 @@ MOESIF_MIDDLEWARE = {
     'SKIP': should_skip,
     'MASK_EVENT_MODEL': mask_event,
     'GET_METADATA': get_metadata,
-    'USE_CELERY': False
 }
 
 ```
@@ -409,27 +385,26 @@ update_companies = middleware.update_companies_batch([userA, userB])
 
 ## Tested versions
 
-Moesif has validated moesifdjango against the following combinations. 
-Using the Celery queing service is optional, but can be enabled to enable higher performance. 
+Moesif has validated moesifdjango against the following combinations.  
 
-| Python       | Django  | Celery | Redis  | Test with Celery | Test w/o Celery |
-| ------------ | ------- | ------ | ------ | ---------------- | --------------- |
-| Python 2.7   | 1.11.22 | 3.1.25 | 2.10.6 | Yes              | Yes             |
-| Python 2.7   | 1.11.22 | 4.3.0  | 3.2.1  | Yes              | Yes             |
-| Python 2.7   | 1.9     |        |        |                  | Yes             |
-| Python 3.4.5 | 1.11.22 | 3.1.25 | 2.10.6 |                  | Yes             |
-| Python 3.4.5 | 1.11.22 | 4.3.0  | 3.2.1  |                  | Yes             |
-| Python 3.4.5 | 1.9     |        |        | Yes              |                 |
-| Python 3.6.4 | 1.11.22 | 3.1.25 | 2.10.6 | Yes              | Yes             |
-| Python 3.6.4 | 1.11.22 | 4.3.0  | 3.2.1  | Yes              | Yes             |
-| Python 3.6.4 | 1.9     |        |        |                  | Yes             |
+| Python       | Django  | 
+| ------------ | ------- | 
+| Python 2.7   | 1.11.22 | 
+| Python 2.7   | 1.11.22 | 
+| Python 2.7   | 1.9     | 
+| Python 3.4.5 | 1.11.22 | 
+| Python 3.4.5 | 1.11.22 | 
+| Python 3.4.5 | 1.9     | 
+| Python 3.6.4 | 1.11.22 | 
+| Python 3.6.4 | 1.11.22 | 
+| Python 3.6.4 | 1.9     | 
 
 ## How to test
 
 1. Manually clone the git repo
 2. Invoke `pip install Django` if you haven't done so.
 3. Invoke `pip install moesifdjango`
-3. Add your own application id to 'tests/settings.py'. You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.com/) -> _Top Right Menu_ -> _Installation_
+3. Add your own application id to 'tests/settings.py'. You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.com/) -> _Top Right Menu_ -> _API Keys_
 4. From terminal/cmd navigate to the root directory of the middleware tests.
 5. Invoke `python manage.py test` if you are using Django 1.10 or newer.
 6. Invoke `python manage.py test middleware_pre19_tests` if you are using Django 1.9 or older.
