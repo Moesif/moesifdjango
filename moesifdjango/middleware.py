@@ -71,7 +71,7 @@ class moesif_middleware:
         self.sampling_percentage = 100
         self.config_etag = None
         self.last_updated_time = datetime.utcnow()
-        self.last_event_sent_time = datetime.utcnow()
+        self.last_event_job_run_time = datetime.utcnow()
         self.scheduler = BackgroundScheduler(daemon=True)
         self.event_queue_size = self.middleware_settings.get('EVENT_QUEUE_SIZE', 10000)
         self.mo_events_queue = queue.Queue(maxsize=self.event_queue_size)
@@ -100,7 +100,7 @@ class moesif_middleware:
                 print('Error reading response from the scheduled event job')
         else:
             if event.retval:
-                response_etag, self.last_event_sent_time = event.retval
+                response_etag, self.last_event_job_run_time = event.retval
                 if response_etag is not None \
                         and self.config_etag is not None \
                         and self.config_etag != response_etag \
@@ -123,7 +123,7 @@ class moesif_middleware:
                 self.scheduler.start()
                 self.scheduler.add_job(
                     func=lambda: self.job_scheduler.batch_events(self.api_client, self.mo_events_queue, self.DEBUG,
-                                                                 self.event_batch_size, self.last_event_sent_time),
+                                                                 self.event_batch_size),
                     trigger=IntervalTrigger(seconds=2),
                     id='moesif_events_batch_job',
                     name='Schedule events batch job every 2 second',
@@ -136,7 +136,7 @@ class moesif_middleware:
                 # Exit handler when exiting the app
                 atexit.register(lambda: self.job_scheduler.exit_handler(self.scheduler, self.DEBUG))
             else:
-                self.last_event_sent_time = datetime.utcnow()
+                self.last_event_job_run_time = datetime.utcnow()
         except Exception as ex:
             if self.DEBUG:
                 print("Error when scheduling the job")
@@ -232,7 +232,7 @@ class moesif_middleware:
         if self.sampling_percentage >= random_percentage:
             event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
             try:
-                if self.is_event_job_scheduled and datetime.utcnow() < self.last_event_sent_time + timedelta(minutes=5):
+                if self.is_event_job_scheduled and datetime.utcnow() < self.last_event_job_run_time + timedelta(minutes=5):
                     if self.DEBUG:
                         print("Add Event to the queue")
                     self.mo_events_queue.put(event_model)

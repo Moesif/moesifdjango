@@ -15,7 +15,7 @@ class JobScheduler:
             if debug:
                 print("Error while closing the queue or scheduler shut down")
 
-    def send_events(self, api_client, batch_events, debug, last_event_sent_time):
+    def send_events(self, api_client, batch_events, debug):
         try:
             if debug:
                 print("Sending events to Moesif")
@@ -24,15 +24,13 @@ class JobScheduler:
                 print("Events sent successfully")
             # Fetch Config ETag from response header
             batch_events_response_config_etag = batch_events_api_response.get("X-Moesif-Config-ETag")
-            # Set the last time event sent
-            last_event_sent_time = datetime.utcnow()
             # Return Config Etag
-            return batch_events_response_config_etag, last_event_sent_time
+            return batch_events_response_config_etag
         except Exception as ex:
             if debug:
                 print("Error sending event to Moesif")
                 print(str(ex))
-            return None, last_event_sent_time
+            return None
 
     # Function to fetch application config
     def fetch_app_config(self, config, config_etag, sampling_percentage, last_updated_time, api_client, debug):
@@ -46,7 +44,10 @@ class JobScheduler:
                 print(str(e))
         return config, config_etag, sampling_percentage, last_updated_time
 
-    def batch_events(self, api_client, moesif_events_queue, debug, batch_size, last_event_sent_time):
+    def batch_events(self, api_client, moesif_events_queue, debug, batch_size):
+        # Set the last time event job ran
+        last_event_job_run_time = datetime.utcnow()
+
         batch_events = []
         try:
             while not moesif_events_queue.empty():
@@ -55,12 +56,14 @@ class JobScheduler:
                     break
 
             if batch_events:
-                batch_response = self.send_events(api_client, batch_events, debug, last_event_sent_time)
+                batch_response = self.send_events(api_client, batch_events, debug)
                 batch_events[:] = []
-                return batch_response
+                return batch_response, last_event_job_run_time
             else:
                 if debug:
                     print("No events to send")
+                return None, last_event_job_run_time
         except:
             if debug:
                 print("No message to read from the queue")
+            return None, last_event_job_run_time
