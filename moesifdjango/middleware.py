@@ -7,6 +7,7 @@ import django
 import logging
 import random
 import math
+import queue
 from django.conf import settings
 from django.utils import timezone
 from moesifapi.moesif_api_client import *
@@ -28,41 +29,11 @@ from .update_users import User
 from .client_ip import ClientIp
 from .logger_helper import LoggerHelper
 from .event_mapper import EventMapper
-
-# Logger Config
-logging.basicConfig()
-logger = logging.getLogger('logger')
-
-CELERY = False
-if settings.MOESIF_MIDDLEWARE.get('USE_CELERY', False):
-    try:
-        import celery
-        from .tasks import async_client_create_event
-        from kombu import Connection
-        try:
-            BROKER_URL = settings.BROKER_URL
-            if BROKER_URL:
-                CELERY = True
-            else:
-                CELERY = False
-        except AttributeError:
-            BROKER_URL = settings.MOESIF_MIDDLEWARE.get('CELERY_BROKER_URL', None)
-            if BROKER_URL:
-                CELERY = True
-            else:
-                logger.warning("USE_CELERY flag was set to TRUE, but BROKER_URL not found")
-                CELERY = False
-
-        try:
-            conn = Connection(BROKER_URL)
-            simple_queue = conn.SimpleQueue('moesif_events_queue')
-        except:
-            logger.error("Error while connecting to - {0}".format(BROKER_URL))
-
-    except:
-        logger.warning("USE_CELERY flag was set to TRUE, but celery package not found.")
-        CELERY = False
-
+from .job_scheduler import JobScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
+import atexit
 
 class moesif_middleware:
     def __init__(self, get_response):
@@ -75,6 +46,7 @@ class moesif_middleware:
         # below comment for setting moesif base_uri to a test server.
         if self.middleware_settings.get('LOCAL_DEBUG', False):
             Configuration.BASE_URI = self.middleware_settings.get('LOCAL_MOESIF_BASEURL', 'https://api.moesif.net')
+        Configuration.version = 'moesifdjango-python/2.0.0'
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
@@ -82,7 +54,7 @@ class moesif_middleware:
                 # Start capturing outgoing requests
                 StartCapture().start_capture_outgoing(settings.MOESIF_MIDDLEWARE)
             except:
-                logger.error('Error while starting to capture the outgoing events')
+                print('Error while starting to capture the outgoing events')
         self.api_version = self.middleware_settings.get('API_VERSION')
         self.api_client = self.client.api
         self.response_catcher = HttpResponseCatcher()
@@ -91,6 +63,7 @@ class moesif_middleware:
         self.client_ip = ClientIp()
         self.logger_helper = LoggerHelper()
         self.event_mapper = EventMapper()
+        self.job_scheduler = JobScheduler()
         self.mask_helper = MaskData()
         self.user = User()
         self.company = Company()
@@ -98,12 +71,76 @@ class moesif_middleware:
         self.sampling_percentage = 100
         self.config_etag = None
         self.last_updated_time = datetime.utcnow()
+        self.last_event_job_run_time = datetime.utcnow()
+        self.scheduler = BackgroundScheduler(daemon=True)
+        self.event_queue_size = self.middleware_settings.get('EVENT_QUEUE_SIZE', 10000)
+        self.mo_events_queue = queue.Queue(maxsize=self.event_queue_size)
+        self.event_batch_size = self.middleware_settings.get('BATCH_SIZE', 25)
+        self.is_event_job_scheduled = False
         try:
             if self.config:
                 self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(self.config, self.DEBUG)
-        except:
+        except Exception as e:
             if self.DEBUG:
-                logger.error('Error while parsing application configuration on initialization')
+                print('Error while parsing application configuration on initialization')
+                print(str(e))
+        try:
+            self.schedule_event_background_job()
+            self.is_event_job_scheduled = True
+        except Exception as ex:
+            self.is_event_job_scheduled = False
+            if self.DEBUG:
+                print('Error while starting the event scheduler job in background')
+                print(str(ex))
+
+    # Function to listen to the send event job response
+    def event_listener(self, event):
+        if event.exception:
+            if self.DEBUG:
+                print('Error reading response from the scheduled event job')
+        else:
+            if event.retval:
+                response_etag, self.last_event_job_run_time = event.retval
+                if response_etag is not None \
+                        and self.config_etag is not None \
+                        and self.config_etag != response_etag \
+                        and datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
+                    try:
+                        self.config, self.config_etag, self.sampling_percentage, self.last_updated_time = \
+                            self.job_scheduler.fetch_app_config(self.config, self.config_etag, self.sampling_percentage,
+                                                                self.last_updated_time, self.api_client, self.DEBUG)
+                    except Exception as ex:
+                        if self.DEBUG:
+                            print('Error while updating the application configuration')
+                            print(str(ex))
+
+    # Function to schedule send event job in async
+    def schedule_event_background_job(self):
+        try:
+            if not self.scheduler.get_jobs():
+
+                self.scheduler.add_listener(self.event_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
+                self.scheduler.start()
+                self.scheduler.add_job(
+                    func=lambda: self.job_scheduler.batch_events(self.api_client, self.mo_events_queue, self.DEBUG,
+                                                                 self.event_batch_size),
+                    trigger=IntervalTrigger(seconds=2),
+                    id='moesif_events_batch_job',
+                    name='Schedule events batch job every 2 second',
+                    replace_existing=True)
+
+                # Avoid passing logging message to the ancestor loggers
+                logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
+                logging.getLogger('apscheduler.executors.default').propagate = False
+
+                # Exit handler when exiting the app
+                atexit.register(lambda: self.job_scheduler.exit_handler(self.scheduler, self.DEBUG))
+            else:
+                self.last_event_job_run_time = datetime.utcnow()
+        except Exception as ex:
+            if self.DEBUG:
+                print("Error when scheduling the job")
+                print(str(ex))
 
     def __call__(self, request):
         # Code to be executed for each request before
@@ -189,52 +226,23 @@ class moesif_middleware:
         # Mask Event Model
         event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)
 
-        def sending_event():
-            if self.DEBUG:
-                print("sending event to moesif")
-            try:
-                if not CELERY:
-                    event_api_response = self.api_client.create_event(event_model)
-                    event_response_config_etag = event_api_response.get("X-Moesif-Config-ETag")
-                    if event_response_config_etag is not None \
-                            and self.config_etag is not None \
-                            and self.config_etag != event_response_config_etag \
-                            and datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
-                        try:
-                            self.config = self.app_config.get_config(self.api_client, self.DEBUG)
-                            self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(self.config, self.DEBUG)
-                        except:
-                            if self.DEBUG:
-                                logger.error('Error while updating the application configuration')
-                else:
-                    try:
-                        message = event_model.to_dictionary()
-                        simple_queue.put(message)
-                        if self.DEBUG:
-                            print("Event added to the queue")
-                    except:
-                        if self.DEBUG:
-                            print("Error while adding event to the queue")
-                if self.DEBUG:
-                    print("Event sent successfully")
-            except APIException as inst:
-                if 401 <= inst.response_code <= 403:
-                    print("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
-                if self.DEBUG:
-                    print("Error sending event to Moesif, with status code:")
-                    print(inst.response_code)
-
+        # Create random percentage
         random_percentage = random.random() * 100
-
         self.sampling_percentage = self.app_config.get_sampling_percentage(self.config, user_id, company_id)
         if self.sampling_percentage >= random_percentage:
             event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
-            if CELERY:
-                sending_event()
-            else:
-                # send the event to moesif via background so not blocking
-                sending_background_thread = threading.Thread(target=sending_event)
-                sending_background_thread.start()
+            try:
+                if self.is_event_job_scheduled and datetime.utcnow() < self.last_event_job_run_time + timedelta(minutes=5):
+                    if self.DEBUG:
+                        print("Add Event to the queue")
+                    self.mo_events_queue.put(event_model)
+                else:
+                    self.schedule_event_background_job()
+                    self.is_event_job_scheduled = True
+            except Exception as ex:
+                if self.DEBUG:
+                    print("Error while adding event to the queue")
+                    print(str(ex))
 
         return response
 
