@@ -156,13 +156,13 @@ class LoggerHelper:
     def get_user_id(self, middleware_settings, request, response, request_headers, debug):
         user_id = None
         try:
-            if request.user and request.user.is_authenticated and request.user.username:
-                return request.user.username
-            else:
-                identify_user = middleware_settings.get('IDENTIFY_USER', None)
-                if identify_user is not None:
-                    user_id = identify_user(request, response)
-                if not user_id:
+            identify_user = middleware_settings.get('IDENTIFY_USER', None)
+            if identify_user is not None:
+                user_id = identify_user(request, response)
+            if not user_id:
+                if request.user and request.user.is_authenticated and request.user.username:
+                    return request.user.username
+                else:
                     # Transform request headers keys to lower case
                     request_headers = {k.lower(): v for k, v in request_headers.items()}
                     # Fetch the auth header name from the config

@@ -46,7 +46,7 @@ class moesif_middleware:
         # below comment for setting moesif base_uri to a test server.
         if self.middleware_settings.get('LOCAL_DEBUG', False):
             Configuration.BASE_URI = self.middleware_settings.get('LOCAL_MOESIF_BASEURL', 'https://api.moesif.net')
-        Configuration.version = 'moesifdjango-python/2.0.0'
+        Configuration.version = 'moesifdjango-python/2.0.2'
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
