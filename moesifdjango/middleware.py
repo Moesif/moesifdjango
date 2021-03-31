@@ -46,7 +46,7 @@ class moesif_middleware:
         # below comment for setting moesif base_uri to a test server.
         if self.middleware_settings.get('LOCAL_DEBUG', False):
             Configuration.BASE_URI = self.middleware_settings.get('LOCAL_MOESIF_BASEURL', 'https://api.moesif.net')
-        Configuration.version = 'moesifdjango-python/2.0.2'
+        Configuration.version = 'moesifdjango-python/2.0.3'
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
@@ -71,8 +71,8 @@ class moesif_middleware:
         self.sampling_percentage = 100
         self.config_etag = None
         self.last_updated_time = datetime.utcnow()
-        self.last_event_job_run_time = datetime.utcnow()
-        self.scheduler = BackgroundScheduler(daemon=True)
+        self.last_event_job_run_time = datetime(1970, 1, 1, 0, 0) # Assuming job never ran, set it to epoch start time
+        self.scheduler = None
         self.event_queue_size = self.middleware_settings.get('EVENT_QUEUE_SIZE', 10000)
         self.mo_events_queue = queue.Queue(maxsize=self.event_queue_size)
         self.event_batch_size = self.middleware_settings.get('BATCH_SIZE', 25)
@@ -84,14 +84,6 @@ class moesif_middleware:
             if self.DEBUG:
                 print('Error while parsing application configuration on initialization')
                 print(str(e))
-        try:
-            self.schedule_event_background_job()
-            self.is_event_job_scheduled = True
-        except Exception as ex:
-            self.is_event_job_scheduled = False
-            if self.DEBUG:
-                print('Error while starting the event scheduler job in background')
-                print(str(ex))
 
     # Function to listen to the send event job response
     def event_listener(self, event):
@@ -117,8 +109,9 @@ class moesif_middleware:
     # Function to schedule send event job in async
     def schedule_event_background_job(self):
         try:
+            if not self.scheduler:
+                self.scheduler = BackgroundScheduler(daemon=True)
             if not self.scheduler.get_jobs():
-
                 self.scheduler.add_listener(self.event_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
                 self.scheduler.start()
                 self.scheduler.add_job(
@@ -135,8 +128,6 @@ class moesif_middleware:
 
                 # Exit handler when exiting the app
                 atexit.register(lambda: self.job_scheduler.exit_handler(self.scheduler, self.DEBUG))
-            else:
-                self.last_event_job_run_time = datetime.utcnow()
         except Exception as ex:
             if self.DEBUG:
                 print("Error when scheduling the job")
@@ -232,13 +223,19 @@ class moesif_middleware:
         if self.sampling_percentage >= random_percentage:
             event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
             try:
-                if self.is_event_job_scheduled and datetime.utcnow() < self.last_event_job_run_time + timedelta(minutes=5):
-                    if self.DEBUG:
-                        print("Add Event to the queue")
-                    self.mo_events_queue.put(event_model)
-                else:
-                    self.schedule_event_background_job()
-                    self.is_event_job_scheduled = True
+                if not self.is_event_job_scheduled and datetime.utcnow() > self.last_event_job_run_time + timedelta(minutes=5):
+                    try:
+                        self.schedule_event_background_job()
+                        self.is_event_job_scheduled = True
+                        self.last_event_job_run_time = datetime.utcnow()
+                    except Exception as ex:
+                        self.is_event_job_scheduled = False
+                        if self.DEBUG:
+                            print('Error while starting the event scheduler job in background')
+                            print(str(ex))
+                if self.DEBUG:
+                    print("Add Event to the queue")
+                self.mo_events_queue.put(event_model)
             except Exception as ex:
                 if self.DEBUG:
                     print("Error while adding event to the queue")
