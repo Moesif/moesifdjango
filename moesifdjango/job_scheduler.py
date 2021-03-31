@@ -47,8 +47,6 @@ class JobScheduler:
         return config, config_etag, sampling_percentage, last_updated_time
 
     def batch_events(self, api_client, moesif_events_queue, debug, batch_size):
-        # Set the last time event job ran
-        last_event_job_run_time = datetime.utcnow()
 
         batch_events = []
         try:
@@ -60,12 +58,16 @@ class JobScheduler:
             if batch_events:
                 batch_response = self.send_events(api_client, batch_events, debug)
                 batch_events[:] = []
-                return batch_response, last_event_job_run_time
+                # Set the last time event job ran after sending events
+                return batch_response, datetime.utcnow()
             else:
                 if debug:
                     print("No events to send")
-                return None, last_event_job_run_time
-        except:
+                # Set the last time event job ran but no message to read from the queue
+                return None, datetime.utcnow()
+        except Exception as e:
             if debug:
                 print("No message to read from the queue")
-            return None, last_event_job_run_time
+                print(str(e))
+            # Set the last time event job ran when exception occurred while sending event
+            return None, datetime.utcnow()
