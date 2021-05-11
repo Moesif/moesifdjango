@@ -149,7 +149,7 @@ class moesif_middleware:
         transaction_id = None
 
         # Request Time
-        req_time = timezone.now()
+        req_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
         try:
             request._mo_body = request.body
@@ -197,14 +197,14 @@ class moesif_middleware:
         rsp_body, rsp_body_transfer_encoding = self.logger_helper.prepare_response_body(response, rsp_headers, self.LOG_BODY,
                                                                                         self.middleware_settings)
         # Response Time
-        rsp_time = timezone.now()
+        rsp_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
         # Prepare Event Request Model
-        event_req = self.event_mapper.to_request(req_time.isoformat(), uri,request.method, self.api_version, ip_address,
+        event_req = self.event_mapper.to_request(req_time, uri,request.method, self.api_version, ip_address,
                                                  req_headers, req_body, req_body_transfer_encoding)
 
         # Prepare Event Response Model
-        event_rsp = self.event_mapper.to_response(rsp_time.isoformat(), response.status_code, rsp_headers, rsp_body,
+        event_rsp = self.event_mapper.to_response(rsp_time, response.status_code, rsp_headers, rsp_body,
                                                   rsp_body_transfer_encoding)
 
         # User Id
