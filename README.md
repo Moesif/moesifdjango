@@ -126,6 +126,9 @@ to add custom metadata that will be associated with the event. The metadata must
 #### __`AUTHORIZATION_USER_ID_FIELD`__
 (optional) _string_, A field name used to parse the User from authorization header in Moesif. Default value is `sub`.
 
+#### __`BASE_URI`__
+(optional) _string_, A local proxy hostname when sending traffic via secure proxy. Please set this field when using secure proxy. For more details, refer [secure proxy documentation.](https://www.moesif.com/docs/platform/secure-proxy/#2-configure-moesif-sdk) 
+
 ### Options specific to outgoing API calls 
 
 The options below are applicable to outgoing API calls (calls you initiate using the Python [Requests](http://docs.python-requests.org/en/master/) lib to third parties like Stripe or to your own services.
