@@ -77,7 +77,10 @@ class LoggerHelper:
 
     def parse_response_headers(self, response, middleware_settings):
         # a little hacky, using _headers, which is intended as a private variable.
-        rsp_headers = {k: self.mapper(response, k) for k, v in response._headers.items()}
+        try:
+            rsp_headers = {k: self.mapper(response, k) for k, v in response._headers.items()}
+        except AttributeError:
+            rsp_headers = {k: self.mapper(response, k) for k, v in response.headers.items()}
         return self.mask_helper.mask_headers(rsp_headers, middleware_settings.get('RESPONSE_HEADER_MASKS'))
 
     def prepare_response_body(self, response, rsp_headers, log_body, middleware_settings):
