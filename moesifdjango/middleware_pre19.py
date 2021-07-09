@@ -45,7 +45,7 @@ class MoesifMiddlewarePre19(object):
         # below comment for setting moesif base_uri to a test server.
         if self.middleware_settings.get('LOCAL_DEBUG', False):
             Configuration.BASE_URI = self.get_configuration_uri(self.middleware_settings, 'BASE_URI', 'LOCAL_MOESIF_BASEURL')
-        Configuration.version = 'moesifdjango-python/2.0.4'
+        Configuration.version = 'moesifdjango-python/2.0.5'
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
@@ -188,7 +188,10 @@ class MoesifMiddlewarePre19(object):
 
         # Add transaction id to request headers
         if self.transaction_id:
-            response._headers["x-moesif-transaction-id"] = ("X-Moesif-Transaction-Id", self.transaction_id)
+            try:
+                response._headers["x-moesif-transaction-id"] = ("X-Moesif-Transaction-Id", self.transaction_id)
+            except AttributeError:
+                response.headers["x-moesif-transaction-id"] = self.transaction_id
 
         # Parse Response headers
         rsp_headers = self.logger_helper.parse_response_headers(response, self.middleware_settings)
