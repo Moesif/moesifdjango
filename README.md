@@ -11,7 +11,7 @@ going out to third parties and sends to [Moesif](https://www.moesif.com) for API
 
 [Source Code on GitHub](https://github.com/moesif/moesifdjango)
 
-This SDK uses the Requests library and will work for Python 2.7 — 3.5.
+This SDK uses the Requests library and will work for Python 2.7 — 3.10.4.
 
 ## How to install
 
@@ -82,8 +82,12 @@ Your Moesif Application Id can be found in the [_Moesif Portal_](https://www.moe
 After signing up for a Moesif account, your Moesif Application Id will be displayed during the onboarding steps. 
 
 You can always find your Moesif Application Id at any time by logging 
-into the [_Moesif Portal_](https://www.moesif.com/), click on the top right menu,
+into the [_Moesif Portal_](https://www.moesif.com/), click on the bottom left user profile,
 and then clicking _API Keys_.
+
+### Django 4
+
+`django.conf.urls.url()` was depreacated in Django 3 and removed in Django 4. Instead of `from django.conf.urls import url` use `from django.urls import re_path`
 
 ## Configuration options
 
@@ -390,17 +394,19 @@ update_companies = middleware.update_companies_batch([userA, userB])
 
 Moesif has validated moesifdjango against the following combinations.  
 
-| Python       | Django  | 
-| ------------ | ------- | 
-| Python 2.7   | 1.11.22 | 
-| Python 2.7   | 1.11.22 | 
-| Python 2.7   | 1.9     | 
-| Python 3.4.5 | 1.11.22 | 
-| Python 3.4.5 | 1.11.22 | 
-| Python 3.4.5 | 1.9     | 
-| Python 3.6.4 | 1.11.22 | 
-| Python 3.6.4 | 1.11.22 | 
-| Python 3.6.4 | 1.9     | 
+| Python        | Django     | 
+| ------------  | -------    | 
+| Python 2.7    | 1.11.22    | 
+| Python 2.7    | 1.11.22    | 
+| Python 2.7    | 1.9        | 
+| Python 3.4.5  | 1.11.22    | 
+| Python 3.4.5  | 1.11.22    | 
+| Python 3.4.5  | 1.9        | 
+| Python 3.6.4  | 1.11.22    | 
+| Python 3.6.4  | 1.11.22    | 
+| Python 3.6.4  | 1.9        | 
+| Python 3.10.4 | 3.2.13 LTS | 
+| Python 3.10.4 | 4.0.5      |
 
 ## Troubleshooting
 
@@ -416,7 +422,7 @@ or you could add `RUN apt-get install tzdata` in the Dockerfile.
 1. Manually clone the git repo
 2. Invoke `pip install Django` if you haven't done so.
 3. Invoke `pip install moesifdjango`
-3. Add your own application id to 'tests/settings.py'. You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.com/) -> _Top Right Menu_ -> _API Keys_
+3. Add your own application id to 'tests/settings.py'. You can find your Application Id from [_Moesif Dashboard_](https://www.moesif.com/) -> _Bottom Left User Profile_ -> _API Keys_
 4. From terminal/cmd navigate to the root directory of the middleware tests.
 5. Invoke `python manage.py test` if you are using Django 1.10 or newer.
 6. Invoke `python manage.py test middleware_pre19_tests` if you are using Django 1.9 or older.
