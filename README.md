@@ -85,10 +85,6 @@ You can always find your Moesif Application Id at any time by logging
 into the [_Moesif Portal_](https://www.moesif.com/), click on the bottom left user profile,
 and then clicking _API Keys_.
 
-### Django 4
-
-`django.conf.urls.url()` was depreacated in Django 3 and removed in Django 4. Instead of `from django.conf.urls import url` use `from django.urls import re_path`
-
 ## Configuration options
 
 #### __`APPLICATION_ID`__
