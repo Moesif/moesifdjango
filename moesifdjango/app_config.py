@@ -36,6 +36,17 @@ class AppConfig:
             return None, 100, datetime.utcnow()
 
     @classmethod
+    def get_rules_etag(cls, config, debug):
+        """Get moesif rules etag"""
+        try:
+            return config.headers.get("x-moesif-rules-tag")
+        except:
+            if debug:
+                print('Error while parsing rules etag')
+            return None
+
+
+    @classmethod
     def get_sampling_percentage(cls, config, user_id, company_id):
         """Get sampling percentage"""
 

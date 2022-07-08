@@ -46,6 +46,19 @@ class JobScheduler:
                 print(str(e))
         return config, config_etag, sampling_percentage, last_updated_time
 
+    # Function to fetch application rules etag
+    def fetch_app_config_rules_etag(self, rules_etag, api_client, debug):
+        config = self.app_config.get_config(api_client, debug)
+        new_rules_etag = self.app_config.get_rules_etag(config, debug)
+        if not rules_etag:
+            return new_rules_etag
+        if not new_rules_etag:
+            return None
+
+        if new_rules_etag != rules_etag:
+            return new_rules_etag
+        return None
+
     def batch_events(self, api_client, moesif_events_queue, debug, batch_size):
 
         batch_events = []

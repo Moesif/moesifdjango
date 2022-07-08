@@ -18,6 +18,7 @@ from django.http import HttpRequest, HttpResponse
 from .http_response_catcher import HttpResponseCatcher
 from .masks import MaskData
 from .client_ip import *
+from .rules import Rule
 from .update_users import *
 from .update_companies import *
 from io import BytesIO
@@ -26,6 +27,7 @@ from datetime import datetime, timedelta
 from .app_config import AppConfig
 from .update_companies import Company
 from .update_users import User
+
 from .client_ip import ClientIp
 from .logger_helper import LoggerHelper
 from .event_mapper import EventMapper
@@ -34,6 +36,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 import atexit
+from .moesif_gov import *
+from .parse_body import ParseBody
+
 
 class moesif_middleware:
     def __init__(self, get_response):
@@ -67,9 +72,21 @@ class moesif_middleware:
         self.mask_helper = MaskData()
         self.user = User()
         self.company = Company()
+        self.parse_body = ParseBody()
+
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
+        self.entity_rules = fetch_entity_rules_from_app_config(self.config)
+        self.rules = Rule()
+        self.governance_rules_response = self.rules.get_rules(api_client=self.api_client,DEBUG=self.DEBUG)
+        self.governance_rules_hashes, self.regex_governance_rules_hashes, self.governance_rules_etags \
+            = generate_rules_mappings(self.governance_rules_response, self.DEBUG)
+
         self.sampling_percentage = 100
         self.config_etag = None
+        self.rules_etag = None
+        self.user_governance_rules = None
+        self.user_block_entity_rules = None
+
         self.last_updated_time = datetime.utcnow()
         self.last_event_job_run_time = datetime(1970, 1, 1, 0, 0) # Assuming job never ran, set it to epoch start time
         self.scheduler = None
@@ -113,6 +130,22 @@ class moesif_middleware:
                         if self.DEBUG:
                             print('Error while updating the application configuration')
                             print(str(ex))
+
+            if self.rules_etag is None or datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
+                new_rule_etag = self.job_scheduler.fetch_app_config_rules_etag(self.rules_etag, self.api_client,
+                                                                               self.DEBUG)
+                if new_rule_etag:
+                    self.rules_etag = new_rule_etag
+                    self.governance_rules_response = self.rules.get_rules(api_client=self.api_client,
+                                                                          DEBUG=self.DEBUG)
+
+                    # auto filed when config
+                    self.governance_rules_hashes, self.regex_governance_rules_hashes, self.governance_rules_etags \
+                        = generate_rules_mappings(self.governance_rules_response, self.DEBUG)
+
+                    self.config = self.app_config.get_config(self.api_client, self.DEBUG)
+                    self.entity_rules = fetch_entity_rules_from_app_config(self.config)
+
 
     # Function to schedule send event job in async
     def schedule_event_background_job(self):
@@ -227,6 +260,47 @@ class moesif_middleware:
 
         # Mask Event Model
         event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)
+
+        self.user_governance_rules, self.user_block_entity_rules = get_governance_rules_from_hashes(
+            self.governance_rules_hashes,
+            self.entity_rules,
+            user_id,
+            'user_rules',
+            self.DEBUG)
+
+        self.company_governance_rules, self.company_block_entity_rules = get_governance_rules_from_hashes(
+            self.governance_rules_hashes,
+            self.entity_rules,
+            company_id,
+            'company_rules',
+            self.DEBUG)
+
+        updated_Response = govern_request(event_model,
+                                          user_id,
+                                          company_id,
+                                          req_body_transfer_encoding,  # could be json or base64
+                                          self.governance_rules_hashes,
+                                          self.regex_governance_rules_hashes,
+                                          self.user_governance_rules, self.user_block_entity_rules,
+                                          self.company_governance_rules, self.company_block_entity_rules,
+                                          self.DEBUG)
+
+        if updated_Response:
+            response.content = self.parse_body.encode_response_body(updated_Response.block_response_body)
+            rsp_body, rsp_body_transfer_encoding = self.logger_helper.prepare_response_body(response,
+                                                                                            updated_Response.block_response_headers,
+                                                                                            self.LOG_BODY,
+                                                                                            self.middleware_settings)
+
+            event_rsp = self.event_mapper.to_response(rsp_time, updated_Response.block_response_status,
+                                                      updated_Response.block_response_headers, rsp_body,
+                                                      rsp_body_transfer_encoding)
+            # Prepare Event Model
+            event_model = self.event_mapper.to_event(event_req, event_rsp, user_id, company_id, session_token,
+                                                     metadata)
+
+            # Mask Event Model
+            event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)
 
         # Create random percentage
         random_percentage = random.random() * 100

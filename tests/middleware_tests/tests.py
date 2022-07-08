@@ -138,3 +138,14 @@ class MaskTests(SimpleTestCase):
         result = self.mask_helper.mask_body(body, masks)
         self.assertIsNone(result.get('d'))
         self.assertIsNone(result['b'][3].get('c'))
+
+
+class get_rules_test(SimpleTestCase):
+
+    def test_get_rules(self):
+        middleware = moesif_middleware(None)
+        response = middleware.governance_rules.__dict__
+
+        # Test Response code
+        self.assertEquals(response['status_code'], 200)
+        self.assertIsNotNone(response["raw_body"])
