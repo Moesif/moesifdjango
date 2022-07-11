@@ -15,10 +15,10 @@ from moesifapi.api_helper import *
 from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
+from .governance_rules import Governance_Rules_Cacher
 from .http_response_catcher import HttpResponseCatcher
 from .masks import MaskData
 from .client_ip import *
-from .rules import Rule
 from .update_users import *
 from .update_companies import *
 from io import BytesIO
@@ -76,19 +76,17 @@ class moesif_middleware:
 
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
         self.entity_rules = fetch_entity_rules_from_app_config(self.config)
-        self.rules = Rule()
-        self.governance_rules_response = self.rules.get_rules(api_client=self.api_client,DEBUG=self.DEBUG)
-        self.governance_rules_hashes, self.regex_governance_rules_hashes, self.governance_rules_etags \
-            = generate_rules_mappings(self.governance_rules_response, self.DEBUG)
+
+        self.gov_rules_cacher = Governance_Rules_Cacher()
+        self.user_governance_rules, self.company_governance_rules, self.regex_governance_rules \
+            = self.gov_rules_cacher.generate_rules_caching(self.api_client, self.DEBUG)
 
         self.sampling_percentage = 100
         self.config_etag = None
         self.rules_etag = None
-        self.user_governance_rules = None
-        self.user_block_entity_rules = None
 
         self.last_updated_time = datetime.utcnow()
-        self.last_event_job_run_time = datetime(1970, 1, 1, 0, 0) # Assuming job never ran, set it to epoch start time
+        self.last_event_job_run_time = datetime(1970, 1, 1, 0, 0)  # Assuming job never ran, set it to epoch start time
         self.scheduler = None
         self.event_queue_size = self.middleware_settings.get('EVENT_QUEUE_SIZE', 10000)
         self.mo_events_queue = queue.Queue(maxsize=self.event_queue_size)
@@ -96,7 +94,8 @@ class moesif_middleware:
         self.is_event_job_scheduled = False
         try:
             if self.config:
-                self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(self.config, self.DEBUG)
+                self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(
+                    self.config, self.DEBUG)
         except Exception as e:
             if self.DEBUG:
                 print('Error while parsing application configuration on initialization')
@@ -117,34 +116,27 @@ class moesif_middleware:
                 print('Error reading response from the scheduled event job')
         else:
             if event.retval:
-                response_etag, self.last_event_job_run_time = event.retval
-                if response_etag is not None \
+                response_config_etag, response_rules_etag, self.last_event_job_run_time = event.retval
+
+                if response_config_etag is not None \
                         and self.config_etag is not None \
-                        and self.config_etag != response_etag \
-                        and datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
+                        and self.config_etag != response_config_etag:
                     try:
                         self.config, self.config_etag, self.sampling_percentage, self.last_updated_time = \
                             self.job_scheduler.fetch_app_config(self.config, self.config_etag, self.sampling_percentage,
                                                                 self.last_updated_time, self.api_client, self.DEBUG)
+                        self.entity_rules = fetch_entity_rules_from_app_config(self.config)
+
                     except Exception as ex:
                         if self.DEBUG:
                             print('Error while updating the application configuration')
                             print(str(ex))
 
-            if self.rules_etag is None or datetime.utcnow() > self.last_updated_time + timedelta(minutes=5):
-                new_rule_etag = self.job_scheduler.fetch_app_config_rules_etag(self.rules_etag, self.api_client,
-                                                                               self.DEBUG)
-                if new_rule_etag:
-                    self.rules_etag = new_rule_etag
-                    self.governance_rules_response = self.rules.get_rules(api_client=self.api_client,
-                                                                          DEBUG=self.DEBUG)
-
-                    # auto filed when config
-                    self.governance_rules_hashes, self.regex_governance_rules_hashes, self.governance_rules_etags \
-                        = generate_rules_mappings(self.governance_rules_response, self.DEBUG)
-
-                    self.config = self.app_config.get_config(self.api_client, self.DEBUG)
-                    self.entity_rules = fetch_entity_rules_from_app_config(self.config)
+                if response_rules_etag:
+                    if (not self.rules_etag and response_rules_etag) or self.rules_etag != response_rules_etag:
+                        self.rules_etag = response_rules_etag
+                        self.user_governance_rules, self.company_governance_rules, self.regex_governance_rules \
+                            = self.gov_rules_cacher.generate_rules_caching(self.api_client, self.DEBUG)
 
 
     # Function to schedule send event job in async
@@ -261,28 +253,14 @@ class moesif_middleware:
         # Mask Event Model
         event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)
 
-        self.user_governance_rules, self.user_block_entity_rules = get_governance_rules_from_hashes(
-            self.governance_rules_hashes,
-            self.entity_rules,
-            user_id,
-            'user_rules',
-            self.DEBUG)
-
-        self.company_governance_rules, self.company_block_entity_rules = get_governance_rules_from_hashes(
-            self.governance_rules_hashes,
-            self.entity_rules,
-            company_id,
-            'company_rules',
-            self.DEBUG)
-
         updated_Response = govern_request(event_model,
                                           user_id,
                                           company_id,
                                           req_body_transfer_encoding,  # could be json or base64
-                                          self.governance_rules_hashes,
-                                          self.regex_governance_rules_hashes,
-                                          self.user_governance_rules, self.user_block_entity_rules,
-                                          self.company_governance_rules, self.company_block_entity_rules,
+                                          self.entity_rules,
+                                          self.user_governance_rules,
+                                          self.company_governance_rules,
+                                          self.regex_governance_rules,
                                           self.DEBUG)
 
         if updated_Response:

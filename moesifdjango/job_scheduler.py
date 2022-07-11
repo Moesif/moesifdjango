@@ -26,8 +26,9 @@ class JobScheduler:
                 print("Events sent successfully")
             # Fetch Config ETag from response header
             batch_events_response_config_etag = batch_events_api_response.get("X-Moesif-Config-ETag")
+            batch_events_response_rule_etag = batch_events_api_response.get("X-Moesif-Rules-Tag")
             # Return Config Etag
-            return batch_events_response_config_etag
+            return batch_events_response_config_etag, batch_events_response_rule_etag
         except Exception as ex:
             if debug:
                 print("Error sending event to Moesif")
@@ -69,18 +70,18 @@ class JobScheduler:
                     break
 
             if batch_events:
-                batch_response = self.send_events(api_client, batch_events, debug)
+                batch_response_config_etag, batch_response_rules_etag = self.send_events(api_client, batch_events, debug)
                 batch_events[:] = []
                 # Set the last time event job ran after sending events
-                return batch_response, datetime.utcnow()
+                return batch_response_config_etag, batch_response_rules_etag, datetime.utcnow()
             else:
                 if debug:
                     print("No events to send")
                 # Set the last time event job ran but no message to read from the queue
-                return None, datetime.utcnow()
+                return None, None, datetime.utcnow()
         except Exception as e:
             if debug:
                 print("No message to read from the queue")
                 print(str(e))
             # Set the last time event job ran when exception occurred while sending event
-            return None, datetime.utcnow()
+            return None, None, datetime.utcnow()
