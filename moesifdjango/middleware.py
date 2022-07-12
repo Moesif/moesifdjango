@@ -75,11 +75,12 @@ class moesif_middleware:
         self.parse_body = ParseBody()
 
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
-        self.entity_rules = fetch_entity_rules_from_app_config(self.config)
+        self.gov_rule_helper = MoesifGovRuleHelper()
+        self.entity_rules = self.gov_rule_helper.fetch_entity_rules_from_app_config(self.config)
 
-        self.gov_rules_cacher = GovernanceRulesCacher()
+        self.gov_rules_cacher = GovernanceRulesCacher(self.api_client)
         self.user_governance_rules, self.company_governance_rules, self.regex_governance_rules \
-            = self.gov_rules_cacher.generate_rules_caching(self.api_client, self.DEBUG)
+            = self.gov_rules_cacher.generate_rules_caching(self.DEBUG)
 
         self.sampling_percentage = 100
         self.config_etag = None
@@ -118,26 +119,25 @@ class moesif_middleware:
             if event.retval:
                 response_config_etag, response_rules_etag, self.last_event_job_run_time = event.retval
 
-                if response_config_etag is not None \
-                        and self.config_etag is not None \
-                        and self.config_etag != response_config_etag:
-                    try:
-                        self.config, self.config_etag, self.sampling_percentage, self.last_updated_time = \
-                            self.job_scheduler.fetch_app_config(self.config, self.config_etag, self.sampling_percentage,
-                                                                self.last_updated_time, self.api_client, self.DEBUG)
-                        self.entity_rules = fetch_entity_rules_from_app_config(self.config)
+                if response_config_etag:
+                    if not self.config_etag or self.config_etag != response_config_etag:
+                        try:
+                            self.config, self.config_etag, self.sampling_percentage, self.last_updated_time = \
+                                self.job_scheduler.fetch_app_config(self.config, self.config_etag,
+                                                                    self.sampling_percentage,
+                                                                    self.last_updated_time, self.api_client, self.DEBUG)
+                            self.entity_rules = self.gov_rule_helper.fetch_entity_rules_from_app_config(self.config)
 
-                    except Exception as ex:
-                        if self.DEBUG:
-                            print('Error while updating the application configuration')
-                            print(str(ex))
+                        except Exception as ex:
+                            if self.DEBUG:
+                                print('Error while updating the application configuration')
+                                print(str(ex))
 
                 if response_rules_etag:
-                    if (not self.rules_etag and response_rules_etag) or self.rules_etag != response_rules_etag:
+                    if not self.rules_etag or self.rules_etag != response_rules_etag:
                         self.rules_etag = response_rules_etag
                         self.user_governance_rules, self.company_governance_rules, self.regex_governance_rules \
-                            = self.gov_rules_cacher.generate_rules_caching(self.api_client, self.DEBUG)
-
+                            = self.gov_rules_cacher.generate_rules_caching(self.DEBUG)
 
     # Function to schedule send event job in async
     def schedule_event_background_job(self):
@@ -253,7 +253,7 @@ class moesif_middleware:
         # Mask Event Model
         event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)
 
-        updated_Response = govern_request(event_model,
+        updated_Response = self.gov_rule_helper.govern_request(event_model,
                                           user_id,
                                           company_id,
                                           req_body_transfer_encoding,  # could be json or base64

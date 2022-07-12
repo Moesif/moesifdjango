@@ -4,32 +4,32 @@ from moesifapi import APIException
 
 class GovernanceRulesCacher:
 
-    def __init__(self):
+    def __init__(self, api_client):
+        self.api_client = api_client
         self.user_rules = {}
         self.company_rules = {}
         self.regex_rules = {}
 
-    @classmethod
-    def get_governance_rules_from_client(cls, api_client, DEBUG):
+    def get_governance_rules_from_client(self, DEBUG):
         try:
-            get_rules_response = api_client.get_governance_rules()
+            get_rules_response = self.api_client.get_governance_rules()
             rules = json.loads(get_rules_response.raw_body)
             return rules
         except APIException as inst:
             if 401 <= inst.response_code <= 403:
-                print("Unauthorized access getting application configuration. Please check your Appplication Id.")
+                print("[moesif] Unauthorized access getting application configuration. Please check your Appplication Id.")
             if DEBUG:
-                print("Error getting governance rules, with status code:", inst.response_code)
+                print("[moesif] Error getting governance rules, with status code:", inst.response_code)
             return None
 
         except Exception as ex:
             if DEBUG:
-                print("Error getting governance rules:", ex)
+                print("[moesif] Error getting governance rules:", ex)
             return None
 
-    def generate_rules_caching(self, api_client, DEBUG):
+    def generate_rules_caching(self, DEBUG):
         try:
-            governance_rules = self.get_governance_rules_from_client(api_client, DEBUG)
+            governance_rules = self.get_governance_rules_from_client(DEBUG)
             if not governance_rules:
                 return None, None, None
             rule_types = ['regex', 'user', 'company']
