@@ -22,30 +22,19 @@ class MoesifGovRuleHelper:
         :return: None, if there is no rules in config (no dynamic variable set with gov rules with the app)
                 Otherwise, return mapping with keys user_rules and company_rules
         """
-        entity_rules = {}
+        entity_rules = {'user_rules': {}, 'company_rules': {}}
         try:
             raw_body = json.loads(config.raw_body)
-            if 'user_rules' not in raw_body and 'company_rules' not in raw_body:
-                return None
 
-            if 'user_rules' in raw_body:
-                user_rules = raw_body.get('user_rules')
-                entity_rules['user_rules'] = user_rules
-            else:
-                entity_rules['user_rules'] = {}
-                if debug:
-                    print("[moesif] No attribute [user_rules] is found in ", raw_body)
+            entity_rules = {
+                'user_rules': raw_body.get('user_rules', {}),
+                'company_rules': raw_body.get('company_rules', {}),
+            }
+            if debug:
+                print(f"[moesif] config got {len(entity_rules['user_rules'])} cohort users and {len(entity_rules['company_rules'])} cohort companies")
 
-            if 'company_rules' in raw_body:
-                company_rules = raw_body.get('company_rules')
-                entity_rules['company_rules'] = company_rules
-            else:
-                entity_rules['company_rules'] = {}
-                if debug:
-                    print("[moesif] No attribute [company_rules] is found in ", raw_body)
-
-        except KeyError:
-            print("[moesif] config attribute ['raw_body'] is not found.")
+        except Exception as e:
+            print("[moesif] Error when fetching raw_body from config, ", e)
 
         return entity_rules
 
@@ -548,7 +537,7 @@ class MoesifGovRuleHelper:
             if DEBUG:
                 print('[moesif] No regex rules')
 
-        if company_id_entity and company_governance_rules and entity_rules:
+        if company_id_entity and company_governance_rules:
             company_response_buffer = self.block_request_based_on_entity_governance_rule(
                 request_mapping_for_regex_config,
                 ready_for_body_request,
@@ -557,7 +546,7 @@ class MoesifGovRuleHelper:
                 'company_rules',
                 company_id_entity,
                 DEBUG)
-            if not company_response_buffer.blocked:  # No match or No need block
+            if not company_response_buffer.blocked:
                 if DEBUG:
                     print('[moesif] No blocking from company: ', company_id_entity)
 
@@ -566,7 +555,7 @@ class MoesifGovRuleHelper:
             if DEBUG:
                 print('[moesif] company_id is not valid or no governance rules for the company')
 
-        if user_id_entity and user_governance_rules and entity_rules:
+        if user_id_entity and user_governance_rules:
             user_response_buffer = self.block_request_based_on_entity_governance_rule(request_mapping_for_regex_config,
                                                                                       ready_for_body_request,
                                                                                       user_governance_rules,
