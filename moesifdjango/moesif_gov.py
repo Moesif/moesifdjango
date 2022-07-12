@@ -197,13 +197,8 @@ class MoesifGovRuleHelper:
         :param request:
         :return:
         """
-        if 'content-type' in request.headers:
-            return request.headers['content-type']
-        if 'Content-Type' in request.headers:
-            return request.headers['Content-Type']
-        if 'CONTENT-TYPE' in request.headers:
-            return request.headers['CONTENT-TYPE']
-        return None
+        lower_case_key_headers =  {k.lower(): v for k, v in request.headers.items()}
+        return lower_case_key_headers.get('content-type')
 
     def ok_request_body_regex_rule(self, request, req_body_transfer_encoding):
         """
