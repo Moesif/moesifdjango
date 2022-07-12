@@ -15,7 +15,7 @@ from moesifapi.api_helper import *
 from moesifapi.exceptions.api_exception import *
 from moesifapi.models import *
 from django.http import HttpRequest, HttpResponse
-from .governance_rules import Governance_Rules_Cacher
+from .governance_rules import GovernanceRulesCacher
 from .http_response_catcher import HttpResponseCatcher
 from .masks import MaskData
 from .client_ip import *
@@ -77,7 +77,7 @@ class moesif_middleware:
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
         self.entity_rules = fetch_entity_rules_from_app_config(self.config)
 
-        self.gov_rules_cacher = Governance_Rules_Cacher()
+        self.gov_rules_cacher = GovernanceRulesCacher()
         self.user_governance_rules, self.company_governance_rules, self.regex_governance_rules \
             = self.gov_rules_cacher.generate_rules_caching(self.api_client, self.DEBUG)
 

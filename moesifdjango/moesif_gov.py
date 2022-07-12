@@ -65,33 +65,6 @@ def fetch_entity_rules_from_app_config(config):
     return entity_rules
 
 
-def get_governance_rules_from_hashes(governance_rules_hashes, entity_rules, entity_id, rule_name, DEBUG):
-    if hash_key not in governance_rules_hashes or hash_key not in entity_rules \
-            or rule_name not in entity_rules[hash_key]:
-        if DEBUG:
-            print(
-                '[moesif] Skipped blocking request as no governance rules found for the entity associated with the request.')
-        return None, None
-
-    governance_rules = governance_rules_hashes[hash_key]
-    try:
-        entity_rules = entity_rules[hash_key][rule_name][entity_id]
-    except Exception as e:
-        print('Error when getting entity rules: ', e)
-
-    # Fetch governance rules which is blocked, if no rules with entity, return None
-    block_checked_entity_rules = get_entity_governance_rule_and_check_block(entity_rules, governance_rules)
-
-    if not block_checked_entity_rules:
-        if DEBUG:
-            print(
-                '[moesif] Skipped blocking request as no governance rule found or for none of the governance rule block is set to true for the entity Id - ',
-                entity_id)
-        return None, None
-
-    return governance_rules, block_checked_entity_rules
-
-
 '''
     fetch governance rule object from governance rules list based on entity rules and return the block value (True or False)
 '''
@@ -165,7 +138,7 @@ def regex_match(event_value, condition_value):
 
 
 def regex_pattern_match(event_value, condition_value):
-    return re.search(condition_value, event_value) is not None
+    return re.fullmatch(condition_value, event_value) is not None
 
 
 '''
@@ -364,9 +337,9 @@ def block_request_based_on_entity_governance_rule(request_mapping_for_regex_conf
     response_buffer = BlockResponseBufferList()
     for rule_and_values in entity_rules:
         rule_id = rule_and_values['rules']
-        governance_rule = governance_rules[rule_id]
+        governance_rule = governance_rules.get(rule_id, None)
 
-        if 'response' not in governance_rule or 'status' not in governance_rule['response'] \
+        if not governance_rule or 'response' not in governance_rule or 'status' not in governance_rule['response'] \
                 or 'headers' not in governance_rule['response']:
             if DEBUG:
                 print('[moesif] Skipped blocking request as governance rule response is not set for the entity Id - ',

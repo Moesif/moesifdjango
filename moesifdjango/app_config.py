@@ -40,9 +40,9 @@ class AppConfig:
         """Get moesif rules etag"""
         try:
             return config.headers.get("x-moesif-rules-tag")
-        except:
+        except Exception as e:
             if debug:
-                print('Error while parsing rules etag')
+                print('Error while parsing rules etag: ', e)
             return None
 
 
