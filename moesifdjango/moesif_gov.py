@@ -15,32 +15,37 @@ class MoesifGovRuleHelper:
         pass
 
     @classmethod
-    def fetch_entity_rules_from_app_config(cls, config):
+    def fetch_entity_rules_from_app_config(cls, config, debug):
         """
         get fetch entity rules from config
         :param config:
-        :return:
+        :return: None, if there is no rules in config (no dynamic variable set with gov rules with the app)
+                Otherwise, return mapping with keys user_rules and company_rules
         """
         entity_rules = {}
         try:
             raw_body = json.loads(config.raw_body)
+            if 'user_rules' not in raw_body and 'company_rules' not in raw_body:
+                return None
 
-            try:
+            if 'user_rules' in raw_body:
                 user_rules = raw_body.get('user_rules')
-                if user_rules:
-                    entity_rules['user_rules'] = user_rules
-            except KeyError:
-                print(f"[moesif] {raw_body}'s attribute [user_rules] is unknown.")
+                entity_rules['user_rules'] = user_rules
+            else:
+                entity_rules['user_rules'] = {}
+                if debug:
+                    print("[moesif] No attribute [user_rules] is found in ", raw_body)
 
-            try:
+            if 'company_rules' in raw_body:
                 company_rules = raw_body.get('company_rules')
-                if company_rules:
-                    entity_rules['company_rules'] = company_rules
-            except KeyError:
-                print(f"[moesif] {raw_body}'s attribute [company_rules] is unknown.")
+                entity_rules['company_rules'] = company_rules
+            else:
+                entity_rules['company_rules'] = {}
+                if debug:
+                    print("[moesif] No attribute [company_rules] is found in ", raw_body)
 
         except KeyError:
-            print(f"[moesif] config attribute ['raw_body'] is unknown.")
+            print("[moesif] config attribute ['raw_body'] is not found.")
 
         return entity_rules
 
@@ -301,11 +306,29 @@ class MoesifGovRuleHelper:
         :param DEBUG:
         :return: object of updated response status, headers and body, if criteria is matched and block is true, otherwise return None
         """
-        entity_rules = entity_rules[rule_entity_type][entity_id]
-
         response_buffer = BlockResponseBufferList()
-        for rule_and_values in entity_rules:
-            rule_id = rule_and_values['rules']
+
+        entity_id_rules_mapping = None
+
+        try:
+            entity_id_rules_mapping = entity_rules[rule_entity_type][entity_id]
+        except KeyError as ke:
+            print('[moesif] Skipped blocking request since no governance rules in type of {} with the entity Id - {}: {}'.format(rule_entity_type, entity_id, ke))
+        except Exception as e:
+            print('[moesif] Skipped blocking request, Error when fetching entity rule with entity {}, {}'.format(entity_id, e))
+
+        if not entity_id_rules_mapping:
+            return response_buffer
+
+        for rule_and_values in entity_id_rules_mapping:
+
+            try:
+                rule_id = rule_and_values['rules']  # rule_id is represented as "rules" in the config schema
+            except KeyError as ke:
+                print('[moesif] Skipped a rule in type of {} since the [rule_id] is not found with entity - {}, {}'.format(
+                        rule_entity_type, entity_id, ke))
+                continue
+
             governance_rule = governance_rules.get(rule_id, None)
 
             if not governance_rule or 'response' not in governance_rule or 'status' not in governance_rule['response'] \
@@ -388,7 +411,7 @@ class MoesifGovRuleHelper:
                 print('[moesif] no regex rule matched with the request')
         else:
             for rule_id in matched_rules_id:
-                governance_rule = regex_governance_rules[rule_id]
+                governance_rule = regex_governance_rules.get(rule_id)
                 if not governance_rule:
                     if DEBUG:
                         print(
@@ -451,7 +474,7 @@ class MoesifGovRuleHelper:
 
         # Config mapping for response.status
         if event.response.status:
-            regex_config["response.status"] = event.response.status
+            regex_config['response.status'] = event.response.status
 
         return regex_config
 
@@ -525,7 +548,7 @@ class MoesifGovRuleHelper:
             if DEBUG:
                 print('[moesif] No regex rules')
 
-        if company_id_entity and company_governance_rules:
+        if company_id_entity and company_governance_rules and entity_rules:
             company_response_buffer = self.block_request_based_on_entity_governance_rule(
                 request_mapping_for_regex_config,
                 ready_for_body_request,
@@ -543,7 +566,7 @@ class MoesifGovRuleHelper:
             if DEBUG:
                 print('[moesif] company_id is not valid or no governance rules for the company')
 
-        if user_id_entity and user_governance_rules:
+        if user_id_entity and user_governance_rules and entity_rules:
             user_response_buffer = self.block_request_based_on_entity_governance_rule(request_mapping_for_regex_config,
                                                                                       ready_for_body_request,
                                                                                       user_governance_rules,

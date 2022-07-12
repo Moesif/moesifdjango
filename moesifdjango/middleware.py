@@ -76,7 +76,7 @@ class moesif_middleware:
 
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
         self.gov_rule_helper = MoesifGovRuleHelper()
-        self.entity_rules = self.gov_rule_helper.fetch_entity_rules_from_app_config(self.config)
+        self.entity_rules = self.gov_rule_helper.fetch_entity_rules_from_app_config(self.config, self.DEBUG)
 
         self.gov_rules_cacher = GovernanceRulesCacher(self.api_client)
         self.user_governance_rules, self.company_governance_rules, self.regex_governance_rules \
@@ -126,7 +126,7 @@ class moesif_middleware:
                                 self.job_scheduler.fetch_app_config(self.config, self.config_etag,
                                                                     self.sampling_percentage,
                                                                     self.last_updated_time, self.api_client, self.DEBUG)
-                            self.entity_rules = self.gov_rule_helper.fetch_entity_rules_from_app_config(self.config)
+                            self.entity_rules = self.gov_rule_helper.fetch_entity_rules_from_app_config(self.config, self.DEBUG)
 
                         except Exception as ex:
                             if self.DEBUG:
@@ -254,14 +254,14 @@ class moesif_middleware:
         event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)
 
         updated_Response = self.gov_rule_helper.govern_request(event_model,
-                                          user_id,
-                                          company_id,
-                                          req_body_transfer_encoding,  # could be json or base64
-                                          self.entity_rules,
-                                          self.user_governance_rules,
-                                          self.company_governance_rules,
-                                          self.regex_governance_rules,
-                                          self.DEBUG)
+                                                               user_id,
+                                                               company_id,
+                                                               req_body_transfer_encoding,  # could be json or base64
+                                                               self.entity_rules,
+                                                               self.user_governance_rules,
+                                                               self.company_governance_rules,
+                                                               self.regex_governance_rules,
+                                                               self.DEBUG)
 
         if updated_Response:
             response.content = self.parse_body.encode_response_body(updated_Response.block_response_body)
