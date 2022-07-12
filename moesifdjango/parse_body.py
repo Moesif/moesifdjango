@@ -57,3 +57,7 @@ class ParseBody:
         except:
             parsed_body, transfer_encoding = self.base64_body(body)
         return parsed_body, transfer_encoding
+
+    @classmethod
+    def encode_response_body(cls, body):
+        return json.dumps(body).encode('utf-8')
