@@ -31,7 +31,8 @@ class MoesifGovRuleHelper:
                 'company_rules': raw_body.get('company_rules', {}),
             }
             if debug:
-                print(f"[moesif] config got {len(entity_rules['user_rules'])} cohort users and {len(entity_rules['company_rules'])} cohort companies")
+                print(
+                    f"[moesif] config got {len(entity_rules['user_rules'])} cohort users and {len(entity_rules['company_rules'])} cohort companies")
 
         except Exception as e:
             print("[moesif] Error when fetching raw_body from config, ", e)
@@ -144,16 +145,22 @@ class MoesifGovRuleHelper:
 
             # Iterate through conditions table and perform `and` operation between each conditions
             for path, values in condition_path_value_mapping.items():
-                if re.fullmatch('request\.body\..*', path):
-                    if not ready_for_body_request:
-                        continue
+                try:
+                    if re.fullmatch('request\.body\..*', path):
+                        if not ready_for_body_request:
+                            continue
+                except Exception as e:
+                    print("[moesif] Error when matching path start with request\\.body\\", e)
 
                 # Check if the path exists in the request config mapping
                 if path in request_mapping_for_regex_config:
-                    # Fetch the value of the path in request config mapping
-                    event_data = request_mapping_for_regex_config[path]
-                    # Perform regex matching with event value
-                    regex_matched = self.regex_pattern_match(event_data, values)
+                    try:
+                        # Fetch the value of the path in request config mapping
+                        event_data = request_mapping_for_regex_config[path]
+                        # Perform regex matching with event value
+                        regex_matched = self.regex_pattern_match(event_data, values)
+                    except Exception as e:
+                        print("[moesif] Error when matching condition of governance rule {} and event data {}".format(values, e))
                 else:
                     # Path does not exist in request config mapping, so no need to match regex condition rule
                     regex_matched = False
@@ -236,7 +243,7 @@ class MoesifGovRuleHelper:
             return False
         start += len('request.body.')
         if '.' in path[start:]:
-            print("Moesif does not support nested fields")
+            print("[moesif] no support nested fields for request body condition matching")
             return False
 
         return True
@@ -269,7 +276,7 @@ class MoesifGovRuleHelper:
                 try:
                     updated_gr_values[int(k)] = v
                 except Exception as e:
-                    print('Error when converting entity rules values key: ', e)
+                    print('[moesif] Error when converting entity rules values key: ', e)
 
             updated_gr_headers = self.transform_values(updated_gr_headers, updated_gr_values)
             updated_gr_body = self.transform_values(updated_gr_body, updated_gr_values)
@@ -302,9 +309,12 @@ class MoesifGovRuleHelper:
         try:
             entity_id_rules_mapping = entity_rules[rule_entity_type][entity_id]
         except KeyError as ke:
-            print('[moesif] Skipped blocking request since no governance rules in type of {} with the entity Id - {}: {}'.format(rule_entity_type, entity_id, ke))
+            print(
+                '[moesif] Skipped blocking request since no governance rules in type of {} with the entity Id - {}: {}'.format(
+                    rule_entity_type, entity_id, ke))
         except Exception as e:
-            print('[moesif] Skipped blocking request, Error when fetching entity rule with entity {}, {}'.format(entity_id, e))
+            print('[moesif] Skipped blocking request, Error when fetching entity rule with entity {}, {}'.format(
+                entity_id, e))
 
         if not entity_id_rules_mapping:
             return response_buffer
@@ -314,7 +324,8 @@ class MoesifGovRuleHelper:
             try:
                 rule_id = rule_and_values['rules']  # rule_id is represented as "rules" in the config schema
             except KeyError as ke:
-                print('[moesif] Skipped a rule in type of {} since the [rule_id] is not found with entity - {}, {}'.format(
+                print(
+                    '[moesif] Skipped a rule in type of {} since the [rule_id] is not found with entity - {}, {}'.format(
                         rule_entity_type, entity_id, ke))
                 continue
 
@@ -333,7 +344,7 @@ class MoesifGovRuleHelper:
                 gr_regex_configs = governance_rule["regex_config"]
 
             matched = self.check_event_matched_with_governance_rules(gr_regex_configs, request_mapping_for_regex_config,
-                                                                ready_for_body_request)
+                                                                     ready_for_body_request)
 
             if not matched:
                 if DEBUG:
@@ -370,13 +381,13 @@ class MoesifGovRuleHelper:
             regex_configs = rule['regex_config']
 
             matched = self.check_request_with_regex_match(regex_configs, request_config_mapping,
-                                                     ready_for_body_request)
+                                                          ready_for_body_request)
 
             if matched:
                 try:
                     matched_rules_id.append(rule['_id'])
                 except KeyError as ke:
-                    print('Error when fetching matched regex governance rule ', ke)
+                    print('[moesif] Error when fetching matched regex governance rule ', ke)
 
         return matched_rules_id
 
@@ -393,7 +404,7 @@ class MoesifGovRuleHelper:
 
         response_buffer = BlockResponseBufferList()
         matched_rules_id = self.get_rules_id_if_governance_rule_matched(regex_governance_rules, event,
-                                                                   ready_for_body_request)
+                                                                        ready_for_body_request)
 
         if not matched_rules_id:
             if DEBUG:
@@ -420,7 +431,7 @@ class MoesifGovRuleHelper:
 
                 response_buffer.update(block, gr_status, gr_header, gr_body)
                 if DEBUG:
-                    print('request matched with regex rule with rule_id {}'.format(rule_id))
+                    print('[moesif] request matched with regex rule with rule_id {}'.format(rule_id))
         return response_buffer
 
     # TODO can deal with request.body in one place
