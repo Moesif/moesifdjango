@@ -243,7 +243,7 @@ class MoesifGovRuleHelper:
             return False
         start += len('request.body.')
         if '.' in path[start:]:
-            print("[moesif] nested fields are not supported")
+            print("[moesif] nested fields are not supported for request body condition matching")
             return False
 
         return True
