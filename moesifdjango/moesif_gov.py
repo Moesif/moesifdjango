@@ -150,7 +150,7 @@ class MoesifGovRuleHelper:
                         if not ready_for_body_request:
                             continue
                 except Exception as e:
-                    print("[moesif] Error when matching path start with request\\.body\\", e)
+                    print("[moesif] Error when matching path starts with request\\.body\\", e)
 
                 # Check if the path exists in the request config mapping
                 if path in request_mapping_for_regex_config:
@@ -160,7 +160,7 @@ class MoesifGovRuleHelper:
                         # Perform regex matching with event value
                         regex_matched = self.regex_pattern_match(event_data, values)
                     except Exception as e:
-                        print("[moesif] Error when matching condition of governance rule {} and event data {}".format(values, e))
+                        print("[moesif] Error while matching condition of governance rule {} and event data {}".format(values, e))
                 else:
                     # Path does not exist in request config mapping, so no need to match regex condition rule
                     regex_matched = False
@@ -243,7 +243,7 @@ class MoesifGovRuleHelper:
             return False
         start += len('request.body.')
         if '.' in path[start:]:
-            print("[moesif] no support nested fields for request body condition matching")
+            print("[moesif] nested fields are not supported")
             return False
 
         return True
