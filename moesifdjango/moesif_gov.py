@@ -331,8 +331,7 @@ class MoesifGovRuleHelper:
 
             governance_rule = governance_rules.get(rule_id, None)
 
-            if not governance_rule or 'response' not in governance_rule or 'status' not in governance_rule['response'] \
-                    or 'headers' not in governance_rule['response']:
+            if not governance_rule or 'response' not in governance_rule or 'status' not in governance_rule['response']:
                 if DEBUG:
                     print(
                         '[moesif] Skipped blocking request as governance rule response is not set for the entity Id - ',
@@ -343,8 +342,10 @@ class MoesifGovRuleHelper:
             if "regex_config" in governance_rule and governance_rule["regex_config"]:
                 gr_regex_configs = governance_rule["regex_config"]
 
-            matched = self.check_event_matched_with_governance_rules(gr_regex_configs, request_mapping_for_regex_config,
-                                                                     ready_for_body_request)
+            matched = not gr_regex_configs or self.check_event_matched_with_governance_rules(
+                gr_regex_configs,
+                request_mapping_for_regex_config,
+                ready_for_body_request)
 
             if not matched:
                 if DEBUG:
