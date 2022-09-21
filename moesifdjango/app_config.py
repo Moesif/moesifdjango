@@ -51,18 +51,23 @@ class AppConfig:
         """Get sampling percentage"""
 
         if config is not None:
-            config_body = json.loads(config.raw_body)
+            try:
+                config_body = json.loads(config.raw_body)
 
-            user_sample_rate = config_body.get('user_sample_rate', None)
+                user_sample_rate = config_body.get('user_sample_rate', None)
 
-            company_sample_rate = config_body.get('company_sample_rate', None)
+                company_sample_rate = config_body.get('company_sample_rate', None)
 
-            if user_id and user_sample_rate and user_id in user_sample_rate:
-                return user_sample_rate[user_id]
+                if user_id and user_sample_rate and user_id in user_sample_rate:
+                    return user_sample_rate[user_id]
 
-            if company_id and company_sample_rate and company_id in company_sample_rate:
-                return company_sample_rate[company_id]
+                if company_id and company_sample_rate and company_id in company_sample_rate:
+                    return company_sample_rate[company_id]
 
-            return config_body.get('sample_rate', 100)
-        else:
-            return 100
+                return config_body.get('sample_rate', 100)
+            except Exception as e:
+                print("Error while parsing user or company sample rate")
+                print(e)
+
+        # Use default
+        return 100
