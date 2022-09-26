@@ -170,11 +170,13 @@ class moesif_middleware:
         # Code to be executed for each request before
         # the view (and later middleware) are called.
 
-        # Initialize Transaction Id
-        transaction_id = None
-
         # Request Time
         req_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+        if self.DEBUG:
+            print("event request time: ", req_time)
+
+        # Initialize Transaction Id
+        transaction_id = None
 
         try:
             request._mo_body = request.body
@@ -189,6 +191,11 @@ class moesif_middleware:
         response = self.get_response(request)
         # Code to be executed for each request/response after
         # the view is called.
+
+        # Response Time
+        rsp_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+        if self.DEBUG:
+            print("event response time: ", rsp_time)
 
         # Check if need to skip logging event
         skip_event_response = self.logger_helper.skip_event(request, response, self.middleware_settings, self.DEBUG)
@@ -224,8 +231,6 @@ class moesif_middleware:
         # Prepare Response Body
         rsp_body, rsp_body_transfer_encoding = self.logger_helper.prepare_response_body(response, rsp_headers, self.LOG_BODY,
                                                                                         self.middleware_settings)
-        # Response Time
-        rsp_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
         # Prepare Event Request Model
         event_req = self.event_mapper.to_request(req_time, uri,request.method, self.api_version, ip_address,
