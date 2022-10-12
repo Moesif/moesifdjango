@@ -1,5 +1,5 @@
 from datetime import datetime
-from .app_config import AppConfig
+from moesifpythonrequest.app_config.app_config import AppConfig
 
 class JobScheduler:
 

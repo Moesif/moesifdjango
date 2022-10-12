@@ -21,7 +21,7 @@ from .update_companies import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
-from .app_config import AppConfig
+from moesifpythonrequest.app_config.app_config import AppConfig
 from .parse_body import ParseBody
 from .update_companies import Company
 from .update_users import User
@@ -236,7 +236,7 @@ class MoesifMiddlewarePre19(object):
 
         # Create random percentage
         random_percentage = random.random() * 100
-        self.sampling_percentage = self.app_config.get_sampling_percentage(self.config, user_id, company_id)
+        self.sampling_percentage = self.app_config.get_sampling_percentage(event_model, self.config, user_id, company_id)
         if self.sampling_percentage >= random_percentage:
             event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
             try:
