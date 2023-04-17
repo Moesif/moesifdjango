@@ -6,8 +6,9 @@ import re
 from .block_response_buffer import BlockResponseBufferList
 from .event_mapper import *
 from .governance_rule_response import GovernanceRuleBlockResponse
+from .governance_rules import AppliedTo, RuleType
 
-REVERSED_PRIORITY_RULES_ORDER = ['regex', 'company', 'user']
+REVERSED_PRIORITY_RULES_ORDER = [RuleType.REGEX.value, RuleType.COMPANY.value, RuleType.USER.value]
 
 
 class MoesifGovRuleHelper:
@@ -176,20 +177,6 @@ class MoesifGovRuleHelper:
         # If regex conditions are not matched, return default sample rate (nil) and do not block request (false)
         return False
 
-    def check_event_matched_with_governance_rules(self, gr_regex_configs, request_mapping_for_regex_config,
-                                                  ready_for_body_request):
-        """
-        check if the request config mapping governance rule regex conditions
-        :param gr_regex_configs:
-        :param request_mapping_for_regex_config:
-        :param ready_for_body_request:
-        :return:
-        """
-        matched = self.check_request_with_regex_match(gr_regex_configs,
-                                                 request_mapping_for_regex_config,
-                                                 ready_for_body_request)
-
-        return matched
 
     @classmethod
     def get_req_content_type(cls, request):
@@ -338,19 +325,12 @@ class MoesifGovRuleHelper:
                         entity_id)
                 continue
 
-            gr_regex_configs = {}
-            if "regex_config" in governance_rule and governance_rule["regex_config"]:
-                gr_regex_configs = governance_rule["regex_config"]
+            should_block = self.check_event_should_blocked_by_rule(governance_rule, request_mapping_for_regex_config, ready_for_body_request)
 
-            matched = not gr_regex_configs or self.check_event_matched_with_governance_rules(
-                gr_regex_configs,
-                request_mapping_for_regex_config,
-                ready_for_body_request)
-
-            if not matched:
+            if not should_block:
                 if DEBUG:
                     print(
-                        "[moesif] Skipped blocking request as governance rule {} regex conditions does not match".format(
+                        "[moesif] Skipped blocking request because it's not satisfied with governance rule {}".format(
                             rule_id))
                 continue
 
@@ -365,6 +345,23 @@ class MoesifGovRuleHelper:
                 print("[moesif] request matched with rule_id [{}]".format(rule_id))
 
         return response_buffer
+
+    def check_event_should_blocked_by_rule(self, governance_rule,
+                                           request_mapping_for_regex_config,
+                                           ready_for_body_request):
+        applied_to = governance_rule.get('applied_to', AppliedTo.MATCHING.value)
+
+        gr_regex_configs = {}
+        if "regex_config" in governance_rule and governance_rule["regex_config"]:
+            gr_regex_configs = governance_rule["regex_config"]
+
+        matched = self.check_request_with_regex_match(
+            gr_regex_configs,
+            request_mapping_for_regex_config,
+            ready_for_body_request)
+
+        return (matched and applied_to == AppliedTo.MATCHING.value) \
+               or (not matched and applied_to == AppliedTo.NOT_MATCHING.value)
 
     def get_rules_id_if_governance_rule_matched(self, regex_governance_rules, event, ready_for_body_request):
         """
@@ -518,17 +515,15 @@ class MoesifGovRuleHelper:
                     return True
         return False
 
-    def govern_request(self,
-                       event,
-                       user_id, company_id,
-                       req_body_transfer_encoding,
-                       entity_rules,
-                       user_governance_rules,
-                       company_governance_rules,
-                       regex_governance_rules,
-                       DEBUG):
-        user_id_entity = user_id
-        company_id_entity = company_id
+    def apply_governance_rules(self,
+                               event,
+                               user_id_entity, company_id_entity,
+                               req_body_transfer_encoding,
+                               entity_rules,
+                               user_governance_rules,
+                               company_governance_rules,
+                               regex_governance_rules,
+                               DEBUG):
 
         ready_for_body_request = self.ok_request_body_regex_rule(event.request, req_body_transfer_encoding)
         request_mapping_for_regex_config = self.prepare_request_config_based_on_regex_config(event,
