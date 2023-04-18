@@ -269,7 +269,9 @@ class moesif_middleware:
                                                                        req_body_transfer_encoding,  # could be json or base64
                                                                        self.entity_rules,
                                                                        self.identified_user_governance_rules,
+                                                                       self.unidentified_user_governance_rules,
                                                                        self.identified_company_governance_rules,
+                                                                       self.unidentified_company_governance_rules,
                                                                        self.regex_governance_rules,
                                                                        self.DEBUG)
 
