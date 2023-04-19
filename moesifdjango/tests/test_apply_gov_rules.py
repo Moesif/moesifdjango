@@ -271,6 +271,105 @@ class GovRulesTestCase(unittest.TestCase):
         self.assertEqual(self.user_gov_rule['response']['body'], null_user_blocking_response.block_response_body)
         self.assertEqual(self.user_gov_rule['response']['headers'], null_user_blocking_response.block_response_headers)
 
+    def test_apply_governance_rules_user_not_matching_identified(self):
+        self.user_gov_rule['type'] = RuleType.USER.value
+        self.user_gov_rule['applied_to'] = AppliedTo.NOT_MATCHING.value
+        self.user_gov_rule['applied_to_unidentified'] = False
+
+        identified_user_rules = {self.user_gov_rule.get('_id'): self.user_gov_rule}
+        # not matched event: should block
+        self.request.uri = 'http://127.0.0.1:8000/not_matching/'  # the url not matching with regex rule config
+        self.event.request = self.request
+
+        blocking_response = self.gov_helper.apply_governance_rules(
+            self.event,
+            self.event.user_id, None, None,
+            self.user_entity_rules_from_config,
+            identified_user_rules,
+            None, None, None, None, True
+        )
+
+        self.assertEqual(blocking_response.blocked, True)
+        self.assertEqual(self.user_gov_rule['response']['status'], blocking_response.block_response_status)
+        self.assertEqual({'msg': 'Blocked by Gov Rule', 'user_id': '{}'.format(self.event.user_id)},
+                         blocking_response.block_response_body)
+        self.assertEqual(self.user_gov_rule['response']['headers'], blocking_response.block_response_headers)
+
+        # matched event: should not block
+        self.request.uri = 'http://127.0.0.1:8000/users/'  # the url not matching with regex rule config
+        self.event.request = self.request
+
+        blocking_response = self.gov_helper.apply_governance_rules(
+            self.event,
+            self.event.user_id, None, None,
+            self.user_entity_rules_from_config,
+            identified_user_rules,
+            None, None, None, None, True
+        )
+
+        self.assertIsNone(blocking_response)
+
+    def test_apply_governance_rules_user_not_matching_unidentified(self):
+        self.user_gov_rule['type'] = RuleType.USER.value
+        self.user_gov_rule['applied_to'] = AppliedTo.NOT_MATCHING.value
+        self.user_gov_rule['applied_to_unidentified'] = True
+        unidentified_user_rules = {self.user_gov_rule.get('_id'): self.user_gov_rule}
+
+        # matched event: should not block
+        self.request.uri = 'http://127.0.0.1:8000/users/'  # the url not matching with regex rule config
+        self.event.request = self.request
+        self.event.user_id = 'u1'
+        not_null_user_blocking_response = self.gov_helper.apply_governance_rules(
+            self.event,
+            self.event.user_id, None, None,
+            self.user_entity_rules_from_config,
+            None, unidentified_user_rules, None, None, None, True
+        )
+        self.assertIsNone(not_null_user_blocking_response)
+
+        self.event.user_id = None
+        null_user_blocking_response = self.gov_helper.apply_governance_rules(
+            self.event,
+            self.event.user_id, None, None,
+            self.user_entity_rules_from_config,
+            None,
+            unidentified_user_rules,
+            None, None, None, True
+        )
+        self.assertIsNone(null_user_blocking_response)
+
+        # not matched event: should block
+        self.request.uri = 'http://127.0.0.1:8000/not_matching/'  # the url not matching with regex rule config
+        self.event.request = self.request
+        self.event.user_id = 'u1'
+        not_null_user_blocking_response = self.gov_helper.apply_governance_rules(
+            self.event,
+            self.event.user_id, None, None,
+            self.user_entity_rules_from_config,
+            None, unidentified_user_rules, None, None, None, True
+        )
+        self.assertEqual(not_null_user_blocking_response.blocked, True)
+        self.assertEqual(self.user_gov_rule['response']['status'],
+                         not_null_user_blocking_response.block_response_status)
+        self.assertEqual({'msg': 'Blocked by Gov Rule', 'user_id': '{}'.format(self.event.user_id)},
+                         not_null_user_blocking_response.block_response_body)
+        self.assertEqual(self.user_gov_rule['response']['headers'],
+                         not_null_user_blocking_response.block_response_headers)
+
+        self.event.user_id = None
+        null_user_blocking_response = self.gov_helper.apply_governance_rules(
+            self.event,
+            self.event.user_id, None, None,
+            self.user_entity_rules_from_config,
+            None,
+            unidentified_user_rules,
+            None, None, None, True
+        )
+        self.assertEqual(null_user_blocking_response.blocked, True)
+        self.assertEqual(self.user_gov_rule['response']['status'], null_user_blocking_response.block_response_status)
+        self.assertEqual(self.user_gov_rule['response']['body'], null_user_blocking_response.block_response_body)
+        self.assertEqual(self.user_gov_rule['response']['headers'], null_user_blocking_response.block_response_headers)
+
 
 if __name__ == '__main__':
     unittest.main()
