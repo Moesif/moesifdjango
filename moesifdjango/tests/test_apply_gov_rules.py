@@ -166,10 +166,43 @@ class GovRulesTestCase(unittest.TestCase):
             'company_rules': {}
         }
 
-    def test_get_entity_rule_mapping_from_config(self):
-        rule_values = self.gov_helper.get_entity_rule_mapping_from_config(self.user_entity_rules_from_config, 'user_rules', 'u1')
-        print(rule_values)
+    def test_transform_values(self):
+        response_body = self.gov_helper.transform_values(
+            {'msg': 'Blocked by Gov Rule',
+             'user_id': '{{0}}'},
+            {0: 'u1'})
+        self.assertEqual(response_body['user_id'], 'u1')
 
+    def test_get_updated_response_with_matched_entity_rules(self):
+        rule_to_value_none = {
+            '642f4fcea6ca1c38705d660d': {'0': None}
+        }
+        updated_gr_status, updated_gr_headers, updated_gr_body = \
+            self.gov_helper.get_updated_response_with_matched_entity_rules(
+                self.user_gov_rule,
+                rule_to_value_none,
+                True
+            )
+        print(updated_gr_body)
+        self.assertEqual('UNKNOWN', updated_gr_body['user_id'])
+
+        rule_to_value_no_index = {
+            '642f4fcea6ca1c38705d660d': {}
+        }
+        updated_gr_status2, updated_gr_headers2, updated_gr_body2 = \
+            self.gov_helper.get_updated_response_with_matched_entity_rules(
+                self.user_gov_rule,
+                rule_to_value_no_index,
+                True
+            )
+        print(updated_gr_body2)
+        self.assertEqual('UNKNOWN', updated_gr_body2['user_id'])
+
+
+    def test_get_entity_rule_mapping_from_config(self):
+        rule_values = self.gov_helper.get_entity_rule_mapping_from_config(self.user_entity_rules_from_config,
+                                                                          'user_rules', 'u1')
+        print(rule_values)
 
     def test_check_event_should_blocked_by_rule_should_block(self):
         block = self.gov_helper.check_event_should_blocked_by_rule(self.user_gov_rule,
@@ -238,7 +271,8 @@ class GovRulesTestCase(unittest.TestCase):
 
         self.assertEqual(blocking_response.blocked, True)
         self.assertEqual(self.user_gov_rule['response']['status'], blocking_response.block_response_status)
-        self.assertEqual({'msg': 'Blocked by Gov Rule', 'user_id': '{}'.format(self.event.user_id)}, blocking_response.block_response_body)
+        self.assertEqual({'msg': 'Blocked by Gov Rule', 'user_id': '{}'.format(self.event.user_id)},
+                         blocking_response.block_response_body)
         self.assertEqual(self.user_gov_rule['response']['headers'], blocking_response.block_response_headers)
 
     def test_apply_governance_rules_user_matching_unidentified(self):
@@ -253,9 +287,12 @@ class GovRulesTestCase(unittest.TestCase):
             None, unidentified_user_rules, None, None, None, True
         )
         self.assertEqual(not_null_user_blocking_response.blocked, True)
-        self.assertEqual(self.user_gov_rule['response']['status'], not_null_user_blocking_response.block_response_status)
-        self.assertEqual({'msg': 'Blocked by Gov Rule', 'user_id': '{}'.format(self.event.user_id)}, not_null_user_blocking_response.block_response_body)
-        self.assertEqual(self.user_gov_rule['response']['headers'], not_null_user_blocking_response.block_response_headers)
+        self.assertEqual(self.user_gov_rule['response']['status'],
+                         not_null_user_blocking_response.block_response_status)
+        self.assertEqual({'msg': 'Blocked by Gov Rule', 'user_id': '{}'.format(self.event.user_id)},
+                         not_null_user_blocking_response.block_response_body)
+        self.assertEqual(self.user_gov_rule['response']['headers'],
+                         not_null_user_blocking_response.block_response_headers)
 
         self.event.user_id = None
         null_user_blocking_response = self.gov_helper.apply_governance_rules(
@@ -268,7 +305,7 @@ class GovRulesTestCase(unittest.TestCase):
         )
         self.assertEqual(null_user_blocking_response.blocked, True)
         self.assertEqual(self.user_gov_rule['response']['status'], null_user_blocking_response.block_response_status)
-        self.assertEqual(self.user_gov_rule['response']['body'], null_user_blocking_response.block_response_body)
+        self.assertEqual({'msg': 'Blocked by Gov Rule', 'user_id': 'UNKNOWN'}, null_user_blocking_response.block_response_body)
         self.assertEqual(self.user_gov_rule['response']['headers'], null_user_blocking_response.block_response_headers)
 
     def test_apply_governance_rules_user_not_matching_identified(self):
@@ -367,7 +404,7 @@ class GovRulesTestCase(unittest.TestCase):
         )
         self.assertEqual(null_user_blocking_response.blocked, True)
         self.assertEqual(self.user_gov_rule['response']['status'], null_user_blocking_response.block_response_status)
-        self.assertEqual(self.user_gov_rule['response']['body'], null_user_blocking_response.block_response_body)
+        self.assertEqual({'msg': 'Blocked by Gov Rule', 'user_id': 'UNKNOWN'}, null_user_blocking_response.block_response_body)
         self.assertEqual(self.user_gov_rule['response']['headers'], null_user_blocking_response.block_response_headers)
 
 

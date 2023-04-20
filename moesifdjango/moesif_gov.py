@@ -103,6 +103,10 @@ class MoesifGovRuleHelper:
         """
         if data is None:
             return None
+
+        if not rule_values or len(rule_values) == 0:
+            return data
+
         if isinstance(data, str):
             max_index = max(rule_values.keys())
 
@@ -202,7 +206,6 @@ class MoesifGovRuleHelper:
         # If regex conditions are not matched, return default sample rate (nil) and do not block request (false)
         return False
 
-
     @classmethod
     def get_req_content_type(cls, request):
         """
@@ -294,8 +297,15 @@ class MoesifGovRuleHelper:
                 except Exception as e:
                     print('[moesif] Error when converting entity rules values key: ', e)
 
-            updated_gr_headers = self.transform_values(updated_gr_headers, updated_gr_values)
-            updated_gr_body = self.transform_values(updated_gr_body, updated_gr_values)
+        merge_tag_variables = self.merge_tag_variables_rule_mapping(governance_rule)
+
+        # set default value if user/company entity value is None
+        for k, v in merge_tag_variables.items():
+            if k not in updated_gr_values or not updated_gr_values[k]:
+                updated_gr_values[k] = v['default']
+
+        updated_gr_headers = self.transform_values(updated_gr_headers, updated_gr_values)
+        updated_gr_body = self.transform_values(updated_gr_body, updated_gr_values)
 
         return gr_status, updated_gr_headers, updated_gr_body
 
@@ -515,19 +525,41 @@ class MoesifGovRuleHelper:
                     return True
         return False
 
-    def get_entity_rule_mapping_from_config(self, entity_rules, rule_type_in_config, entity_id):
+    @classmethod
+    def merge_tag_variables_rule_mapping(cls, governance_rule):
+        merge_tag_variables = {}
+        variables = governance_rule.get('variables', [])
+        for variable in variables:
+            try:
+                name = int(variable['name'])
+                path = variable['path']
+                default_value = variable.get('default', 'UNKNOWN')
+                merge_tag_variables.update(
+                    {
+                        name: {
+                            'path': path,
+                            'default': default_value
+                        }
+                    }
+                )
+            except Exception as e:
+                print('[moesif] Error when parsing rule {} variable'.format(governance_rule.get('id')), e)
+        return merge_tag_variables
+
+    @classmethod
+    def get_entity_rule_mapping_from_config(cls, entity_rules, rule_type_in_config, entity_id):
         rule_merge_tag_values_mapping = {}
         try:
             if entity_id:
                 rules_mapping_from_config = entity_rules[rule_type_in_config][entity_id]
                 for rule_values in rules_mapping_from_config:
+                    rule_id = rule_values['rules']
+                    if rule_id not in rule_merge_tag_values_mapping:
+                        rule_merge_tag_values_mapping[rule_id] = {}
                     if 'values' in rule_values:
-                        rule_id = rule_values['rules']
                         values = rule_values['values']
-
-                        if rule_id not in rule_merge_tag_values_mapping:
-                            rule_merge_tag_values_mapping[rule_id] = {}
                         rule_merge_tag_values_mapping[rule_id].update(values)
+
         except Exception as e:
             print('[moesif] Skipped blocking request, Error when fetching entity rule with entity {}, {}'.format(
                 entity_id, e))
@@ -549,8 +581,10 @@ class MoesifGovRuleHelper:
         request_mapping_for_regex_config = self.prepare_request_config_based_on_regex_config(event,
                                                                                              ready_for_body_request)
 
-        user_rules_mapping_from_config = self.get_entity_rule_mapping_from_config(entity_rules, 'user_rules', user_id_entity)
-        company_rules_mapping_from_config = self.get_entity_rule_mapping_from_config(entity_rules, 'company_rules', company_id_entity)
+        user_rules_mapping_from_config = self.get_entity_rule_mapping_from_config(entity_rules, 'user_rules',
+                                                                                  user_id_entity)
+        company_rules_mapping_from_config = self.get_entity_rule_mapping_from_config(entity_rules, 'company_rules',
+                                                                                     company_id_entity)
 
         response_buffers = {
             RuleType.REGEX.value: BlockResponseBufferList(RuleType.REGEX.value),
@@ -614,7 +648,7 @@ class MoesifGovRuleHelper:
                 print('[moesif] company_id is not valid or no identified company governance rules')
 
         if unidentified_user_governance_rules:
-            unidentified_company_response_buffer = \
+            unidentified_user_response_buffer = \
                 self.block_request_based_on_regex_or_unidentified_entity_governance_rule(
                     request_mapping_for_regex_config,
                     ready_for_body_request,
@@ -623,11 +657,11 @@ class MoesifGovRuleHelper:
                     user_rules_mapping_from_config,
                     DEBUG
                 )
-            if not unidentified_company_response_buffer.blocked:
+            if not unidentified_user_response_buffer.blocked:
                 if DEBUG:
                     print('[moesif] No matching with the request from unidentified user rules')
             else:
-                response_buffers[RuleType.USER.value] = unidentified_company_response_buffer
+                response_buffers[RuleType.USER.value] = unidentified_user_response_buffer
         else:
             if DEBUG:
                 print('[moesif] no unidentified user governance rules')
