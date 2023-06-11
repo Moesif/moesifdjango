@@ -359,7 +359,7 @@ class MoesifGovRuleHelper:
                 governance_rule, rule_and_values)
 
             block = governance_rule.get('block', False)
-            response_buffer.update(block, updated_gr_status, updated_gr_headers, updated_gr_body)
+            response_buffer.update(block, updated_gr_status, updated_gr_headers, updated_gr_body, rule_id)
 
             if DEBUG:
                 print("[moesif] request matched with rule_id [{}]".format(rule_id))
@@ -392,8 +392,7 @@ class MoesifGovRuleHelper:
 
         return matched_rules_id
 
-    def block_request_based_on_governance_rule_regex_config(self, event, ready_for_body_request, regex_governance_rules,
-                                                            DEBUG):
+    def block_request_based_on_governance_rule_regex_config(self, event, ready_for_body_request, regex_governance_rules, DEBUG):
         """
         Check if need to block request based on the governance rule regex config associated with the request
         :param event:
@@ -404,35 +403,29 @@ class MoesifGovRuleHelper:
         """
 
         response_buffer = BlockResponseBufferList()
-        matched_rules_id = self.get_rules_id_if_governance_rule_matched(regex_governance_rules, event,
-                                                                        ready_for_body_request)
-
-        if not matched_rules_id:
-            if DEBUG:
-                print('[moesif] no regex rule matched with the request')
-        else:
-            for rule_id in matched_rules_id:
-                governance_rule = regex_governance_rules.get(rule_id)
-                if not governance_rule:
-                    if DEBUG:
-                        print(
-                            '[moesif] Skipped blocking request as rule {} is not found'.format(rule_id))
-                        continue
-
-                if 'response' not in governance_rule \
-                        or 'status' not in governance_rule['response'] \
-                        or 'headers' not in governance_rule['response']:
-                    if DEBUG:
-                        print(
-                            '[moesif] Skipped blocking request as response is not set for the governance rule with regex config')
+        matched_rules_id = self.get_rules_id_if_governance_rule_matched(regex_governance_rules, event, ready_for_body_request)
+        for rule_id in matched_rules_id:
+            governance_rule = regex_governance_rules.get(rule_id)
+            if not governance_rule:
+                if DEBUG:
+                    print(
+                        '[moesif] Skipped blocking request as rule {} is not found'.format(rule_id))
                     continue
 
-                block = governance_rule.get('block', False)
-                gr_status, gr_header, gr_body = self.fetch_governance_rule_response_details(governance_rule)
-
-                response_buffer.update(block, gr_status, gr_header, gr_body)
+            if 'response' not in governance_rule \
+                    or 'status' not in governance_rule['response'] \
+                    or 'headers' not in governance_rule['response']:
                 if DEBUG:
-                    print('[moesif] request matched with regex rule with rule_id {}'.format(rule_id))
+                    print('[moesif] Skipped blocking request as response is not set for the governance rule with regex config')
+                continue
+
+            block = governance_rule.get('block', False)
+            gr_status, gr_header, gr_body = self.fetch_governance_rule_response_details(governance_rule)
+
+            response_buffer.update(block, gr_status, gr_header, gr_body, rule_id)
+            if DEBUG:
+                print('[moesif] request matched with regex rule with rule_id {}'.format(rule_id))
+
         return response_buffer
 
     # TODO can deal with request.body in one place
@@ -493,6 +486,7 @@ class MoesifGovRuleHelper:
         updated_body = None
         updated_status = None
         updated_headers = {}
+        rule_id = None
 
         for rule_type in REVERSED_PRIORITY_RULES_ORDER:
             if rule_type in response_buffers:
@@ -503,10 +497,11 @@ class MoesifGovRuleHelper:
                         if response.blocked:
                             updated_body = response.block_response_body
                             updated_status = response.block_response_status
+                            rule_id = response.rule_id
                         updated_headers.update(response.block_response_headers)
 
         gov_rule_response = GovernanceRuleBlockResponse()
-        gov_rule_response.update_response(updated_status, updated_headers, updated_body, True)
+        gov_rule_response.update_response(updated_status, updated_headers, updated_body, True, rule_id)
         return gov_rule_response
 
     @classmethod
