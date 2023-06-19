@@ -79,8 +79,9 @@ class moesif_middleware:
         self.entity_rules = self.gov_rule_helper.fetch_entity_rules_from_app_config(self.config, self.DEBUG)
 
         self.gov_rules_cacher = GovernanceRulesCacher(self.api_client)
-        self.user_governance_rules, self.company_governance_rules, self.regex_governance_rules \
-            = self.gov_rules_cacher.generate_rules_caching(self.DEBUG)
+        self.identified_user_governance_rules, self.unidentified_user_governance_rules, \
+        self.identified_company_governance_rules, self.unidentified_company_governance_rules, \
+        self.regex_governance_rules = self.gov_rules_cacher.generate_rules_caching(self.DEBUG)
 
         self.sampling_percentage = 100
         self.config_etag = None
@@ -136,7 +137,9 @@ class moesif_middleware:
                 if response_rules_etag:
                     if not self.rules_etag or self.rules_etag != response_rules_etag:
                         self.rules_etag = response_rules_etag
-                        self.user_governance_rules, self.company_governance_rules, self.regex_governance_rules \
+                        self.identified_user_governance_rules, self.unidentified_user_governance_rules,\
+                        self.identified_company_governance_rules, self.unidentified_company_governance_rules,\
+                        self.regex_governance_rules \
                             = self.gov_rules_cacher.generate_rules_caching(self.DEBUG)
 
     # Function to schedule send event job in async
@@ -210,7 +213,8 @@ class moesif_middleware:
                                                                                       self.middleware_settings)
 
         # Prepare Request Body
-        req_body, req_body_transfer_encoding = self.logger_helper.prepare_request_body(request, req_headers, self.LOG_BODY,
+        req_body, req_body_transfer_encoding = self.logger_helper.prepare_request_body(request, req_headers,
+                                                                                       self.LOG_BODY,
                                                                                        self.middleware_settings)
         # Fetch Ip Address
         ip_address = self.client_ip.get_client_ip(request)
@@ -229,11 +233,12 @@ class moesif_middleware:
         rsp_headers = self.logger_helper.parse_response_headers(response, self.middleware_settings)
 
         # Prepare Response Body
-        rsp_body, rsp_body_transfer_encoding = self.logger_helper.prepare_response_body(response, rsp_headers, self.LOG_BODY,
+        rsp_body, rsp_body_transfer_encoding = self.logger_helper.prepare_response_body(response, rsp_headers,
+                                                                                        self.LOG_BODY,
                                                                                         self.middleware_settings)
 
         # Prepare Event Request Model
-        event_req = self.event_mapper.to_request(req_time, uri,request.method, self.api_version, ip_address,
+        event_req = self.event_mapper.to_request(req_time, uri, request.method, self.api_version, ip_address,
                                                  req_headers, req_body, req_body_transfer_encoding)
 
         # Prepare Event Response Model
@@ -258,15 +263,17 @@ class moesif_middleware:
         # Mask Event Model
         event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)
 
-        updated_Response = self.gov_rule_helper.govern_request(event_model,
-                                                               user_id,
-                                                               company_id,
-                                                               req_body_transfer_encoding,  # could be json or base64
-                                                               self.entity_rules,
-                                                               self.user_governance_rules,
-                                                               self.company_governance_rules,
-                                                               self.regex_governance_rules,
-                                                               self.DEBUG)
+        updated_Response = self.gov_rule_helper.apply_governance_rules(event_model,
+                                                                       user_id,
+                                                                       company_id,
+                                                                       req_body_transfer_encoding,  # could be json or base64
+                                                                       self.entity_rules,
+                                                                       self.identified_user_governance_rules,
+                                                                       self.unidentified_user_governance_rules,
+                                                                       self.identified_company_governance_rules,
+                                                                       self.unidentified_company_governance_rules,
+                                                                       self.regex_governance_rules,
+                                                                       self.DEBUG)
 
         if updated_Response:
             response.content = self.parse_body.encode_response_body(updated_Response.block_response_body)

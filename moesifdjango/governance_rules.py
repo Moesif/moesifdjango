@@ -1,13 +1,27 @@
 import json
 from moesifapi import APIException
+from enum import Enum
+
+
+class AppliedTo(Enum):
+    MATCHING = 'matching'
+    NOT_MATCHING = 'not_matching'
+
+
+class RuleType(Enum):
+    USER = 'user'
+    COMPANY = 'company'
+    REGEX = 'regex'
 
 
 class GovernanceRulesCacher:
 
     def __init__(self, api_client):
         self.api_client = api_client
-        self.user_rules = {}
-        self.company_rules = {}
+        self.applied_to_identified_user_rules = {}
+        self.applied_to_identified_company_rules = {}
+        self.applied_to_unidentified_user_rules = {}
+        self.applied_to_unidentified_company_rules = {}
         self.regex_rules = {}
 
     def get_governance_rules_from_client(self, DEBUG):
@@ -32,10 +46,16 @@ class GovernanceRulesCacher:
             governance_rules = self.get_governance_rules_from_client(DEBUG)
             if not governance_rules:
                 return None, None, None
-            rule_types = ['regex', 'user', 'company']
+            rule_types = [RuleType.REGEX.value, RuleType.USER.value, RuleType.COMPANY.value]
             rules_type_mapping = {}
             for rule_type in rule_types:
-                rules_type_mapping[rule_type] = {}
+                if rule_type == RuleType.REGEX.value:
+                    rules_type_mapping[rule_type] = {}
+                    rules_type_mapping[rule_type][False] = {}
+                else:
+                    rules_type_mapping[rule_type] = {}
+                    rules_type_mapping[rule_type][True] = {}
+                    rules_type_mapping[rule_type][False] = {}
             for rule in governance_rules:
                 rule_id = rule['_id']
 
@@ -43,14 +63,21 @@ class GovernanceRulesCacher:
                     rule_type = rule['type']
 
                     if rule_type in rule_types:
-                        rules_type_mapping[rule_type][rule_id] = rule
+                        applied_to_unidentified = rule.get('applied_to_unidentified', False)
+                        rules_type_mapping[rule_type][applied_to_unidentified][rule_id] = rule
                     else:
                         print('[moesif] Get parsed rule type {} is not valid'.format(rule['type']))
 
-                    self.user_rules = rules_type_mapping['user']
-                    self.company_rules = rules_type_mapping['company']
-                    self.regex_rules = rules_type_mapping['regex']
+            self.applied_to_identified_user_rules = rules_type_mapping[RuleType.USER.value][False]
+            self.applied_to_unidentified_user_rules = rules_type_mapping[RuleType.USER.value][True]
+            self.applied_to_identified_company_rules = rules_type_mapping[RuleType.COMPANY.value][False]
+            self.applied_to_unidentified_company_rules = rules_type_mapping[RuleType.COMPANY.value][True]
+            # regex rule will not apply to unidentified or identified, currently,
+            # we will consider that the applied_to_unidentified always set to False
+            self.regex_rules = rules_type_mapping[RuleType.REGEX.value][False]
         except Exception as e:
             print("[moesif] Error when parsing rules response: ", e)
 
-        return self.user_rules, self.company_rules, self.regex_rules
+        return self.applied_to_identified_user_rules, self.applied_to_unidentified_user_rules, \
+               self.applied_to_identified_company_rules, self.applied_to_unidentified_company_rules, \
+               self.regex_rules

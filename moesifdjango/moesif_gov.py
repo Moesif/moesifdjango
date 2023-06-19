@@ -6,8 +6,25 @@ import re
 from .block_response_buffer import BlockResponseBufferList
 from .event_mapper import *
 from .governance_rule_response import GovernanceRuleBlockResponse
+from .governance_rules import AppliedTo, RuleType
 
-REVERSED_PRIORITY_RULES_ORDER = ['regex', 'company', 'user']
+REVERSED_PRIORITY_RULES_ORDER = [RuleType.REGEX.value, RuleType.COMPANY.value, RuleType.USER.value]
+
+
+def merge_block_response(block_response_buffer_list_one: BlockResponseBufferList,
+                         block_response_buffer_list_two: BlockResponseBufferList):
+    if block_response_buffer_list_one.rule_type != block_response_buffer_list_two.rule_type:
+        print('[moesif] Error when merging block response buffer list, [] and [] rule_type are not matching'
+              .format(block_response_buffer_list_one.rule_type, block_response_buffer_list_two.rule_type))
+        return None
+    merged_block_response_buffer_list = block_response_buffer_list_one
+    merged_block_response_buffer_list.blocked = block_response_buffer_list_one.blocked \
+                                                or block_response_buffer_list_two.blocked
+
+    for response in block_response_buffer_list_two.responses:
+        merged_block_response_buffer_list.responses.append(response)
+
+    return merged_block_response_buffer_list
 
 
 class MoesifGovRuleHelper:
@@ -58,7 +75,16 @@ class MoesifGovRuleHelper:
         return block_entity_rules
 
     @classmethod
-    def fetch_governance_rule_response_details(cls, governance_rule):
+    def fetch_governance_rule_response_details(cls, governance_rule, DEBUG):
+        if 'response' not in governance_rule \
+                or 'status' not in governance_rule['response'] \
+                or 'headers' not in governance_rule['response']:
+            if DEBUG:
+                print(
+                    '[moesif] Skipped blocking request as response is not set for the governance rule {} with regex config'.format(
+                        governance_rule))
+            return None, None, None
+
         # Response status
         status = governance_rule['response']['status']
         # Response headers
@@ -77,10 +103,14 @@ class MoesifGovRuleHelper:
         """
         if data is None:
             return None
+
+        if not rule_values or len(rule_values) == 0:
+            return data
+
         if isinstance(data, str):
             max_index = max(rule_values.keys())
 
-            rule_values_list = [rule_values[key] if key in rule_values.keys() else None for key in
+            rule_values_list = [rule_values[key] if key in rule_values.keys() else 'UNKNOWN' for key in
                                 range(max_index + 1)]
 
             try:
@@ -176,21 +206,6 @@ class MoesifGovRuleHelper:
         # If regex conditions are not matched, return default sample rate (nil) and do not block request (false)
         return False
 
-    def check_event_matched_with_governance_rules(self, gr_regex_configs, request_mapping_for_regex_config,
-                                                  ready_for_body_request):
-        """
-        check if the request config mapping governance rule regex conditions
-        :param gr_regex_configs:
-        :param request_mapping_for_regex_config:
-        :param ready_for_body_request:
-        :return:
-        """
-        matched = self.check_request_with_regex_match(gr_regex_configs,
-                                                 request_mapping_for_regex_config,
-                                                 ready_for_body_request)
-
-        return matched
-
     @classmethod
     def get_req_content_type(cls, request):
         """
@@ -248,14 +263,17 @@ class MoesifGovRuleHelper:
 
         return True
 
-    def get_updated_response_with_matched_rules(self, governance_rule, rule_and_values):
+    def get_updated_response_with_matched_entity_rules(self, governance_rule, rule_and_values, DEBUG):
         """
-        get updated response if the governance is blocked checked and matched with request
+        get updated response if the entity governance rule is blocked checked, and event matched with request
+        utilized by both identified and unidentified
         :param governance_rule:
         :param rule_and_values:
         :return:
         """
-        gr_status, gr_header, gr_body = self.fetch_governance_rule_response_details(governance_rule)
+        gr_status, gr_header, gr_body = self.fetch_governance_rule_response_details(governance_rule, DEBUG)
+        if not gr_status:
+            return None, None, None
 
         # Updated governance rule headers
         updated_gr_headers = {}
@@ -270,65 +288,50 @@ class MoesifGovRuleHelper:
             updated_gr_body = gr_body.copy()
 
         updated_gr_values = {}
-        if 'values' in rule_and_values and rule_and_values['values']:
-            rule_values = rule_and_values['values']
+        rule_id = governance_rule.get('_id')
+        if rule_id in rule_and_values:
+            rule_values = rule_and_values.get(rule_id)
             for k, v in rule_values.items():
                 try:
                     updated_gr_values[int(k)] = v
                 except Exception as e:
                     print('[moesif] Error when converting entity rules values key: ', e)
 
-            updated_gr_headers = self.transform_values(updated_gr_headers, updated_gr_values)
-            updated_gr_body = self.transform_values(updated_gr_body, updated_gr_values)
+        merge_tag_variables = self.merge_tag_variables_rule_mapping(governance_rule)
+
+        # set default value if user/company entity value is None
+        for k, v in merge_tag_variables.items():
+            if k not in updated_gr_values or not updated_gr_values[k]:
+                updated_gr_values[k] = v['default']
+
+        updated_gr_headers = self.transform_values(updated_gr_headers, updated_gr_values)
+        updated_gr_body = self.transform_values(updated_gr_body, updated_gr_values)
 
         return gr_status, updated_gr_headers, updated_gr_body
 
-    def block_request_based_on_entity_governance_rule(self,
-                                                      request_mapping_for_regex_config,
-                                                      ready_for_body_request,
-                                                      governance_rules,
-                                                      entity_rules,
-                                                      rule_entity_type,
-                                                      entity_id,
-                                                      DEBUG):
+    def block_request_based_on_entity_governance_rule_identified(self,
+                                                                 request_mapping_for_regex_config,
+                                                                 ready_for_body_request,
+                                                                 governance_rules,
+                                                                 rule_type,
+                                                                 entity_rules,
+                                                                 entity_id,
+                                                                 DEBUG):
         """
         Check if need to block request based on the governance rule of the entity associated with the request
+        :param rule_type: the type of BlockResponseBufferList (user, company or regex)
         :param request_mapping_for_regex_config:
         :param ready_for_body_request:
         :param governance_rules:
         :param entity_rules:
-        :param rule_entity_type:
-        :param entity_id:
+        :param rule_entity_type: the type of rules from config (user_rules, company_rules or regex_rules)
+        :param entity_id: user_id or company_id from event
         :param DEBUG:
         :return: object of updated response status, headers and body, if criteria is matched and block is true, otherwise return None
         """
-        response_buffer = BlockResponseBufferList()
+        response_buffer = BlockResponseBufferList(rule_type)
 
-        entity_id_rules_mapping = None
-
-        try:
-            entity_id_rules_mapping = entity_rules[rule_entity_type][entity_id]
-        except KeyError as ke:
-            print(
-                '[moesif] Skipped blocking request since no governance rules in type of {} with the entity Id - {}: {}'.format(
-                    rule_entity_type, entity_id, ke))
-        except Exception as e:
-            print('[moesif] Skipped blocking request, Error when fetching entity rule with entity {}, {}'.format(
-                entity_id, e))
-
-        if not entity_id_rules_mapping:
-            return response_buffer
-
-        for rule_and_values in entity_id_rules_mapping:
-
-            try:
-                rule_id = rule_and_values['rules']  # rule_id is represented as "rules" in the config schema
-            except KeyError as ke:
-                print(
-                    '[moesif] Skipped a rule in type of {} since the [rule_id] is not found with entity - {}, {}'.format(
-                        rule_entity_type, entity_id, ke))
-                continue
-
+        for rule_id, _ in entity_rules.items():
             governance_rule = governance_rules.get(rule_id, None)
 
             if not governance_rule or 'response' not in governance_rule or 'status' not in governance_rule['response']:
@@ -338,25 +341,18 @@ class MoesifGovRuleHelper:
                         entity_id)
                 continue
 
-            gr_regex_configs = {}
-            if "regex_config" in governance_rule and governance_rule["regex_config"]:
-                gr_regex_configs = governance_rule["regex_config"]
+            should_block = self.check_event_should_blocked_by_rule(governance_rule, request_mapping_for_regex_config, ready_for_body_request)
 
-            matched = not gr_regex_configs or self.check_event_matched_with_governance_rules(
-                gr_regex_configs,
-                request_mapping_for_regex_config,
-                ready_for_body_request)
-
-            if not matched:
+            if not should_block:
                 if DEBUG:
                     print(
-                        "[moesif] Skipped blocking request as governance rule {} regex conditions does not match".format(
+                        "[moesif] Skipped blocking request because it's not satisfied with governance rule {}".format(
                             rule_id))
                 continue
 
             # update response status, headers and body if one block rule matched
-            updated_gr_status, updated_gr_headers, updated_gr_body = self.get_updated_response_with_matched_rules(
-                governance_rule, rule_and_values)
+            updated_gr_status, updated_gr_headers, updated_gr_body = self.get_updated_response_with_matched_entity_rules(
+                governance_rule, entity_rules, DEBUG)
 
             block = governance_rule.get('block', False)
             response_buffer.update(block, updated_gr_status, updated_gr_headers, updated_gr_body)
@@ -366,45 +362,63 @@ class MoesifGovRuleHelper:
 
         return response_buffer
 
-    def get_rules_id_if_governance_rule_matched(self, regex_governance_rules, event, ready_for_body_request):
+    def check_event_should_blocked_by_rule(self, governance_rule,
+                                           request_mapping_for_regex_config,
+                                           ready_for_body_request):
+        applied_to = governance_rule.get('applied_to', AppliedTo.MATCHING.value)
+
+        gr_regex_configs = {}
+        if "regex_config" in governance_rule and governance_rule["regex_config"]:
+            gr_regex_configs = governance_rule["regex_config"]
+
+        matched = self.check_request_with_regex_match(
+            gr_regex_configs,
+            request_mapping_for_regex_config,
+            ready_for_body_request)
+
+        return (matched and applied_to == AppliedTo.MATCHING.value) \
+               or (not matched and applied_to == AppliedTo.NOT_MATCHING.value)
+
+    def get_rules_id_if_governance_rule_matched(self, governance_rules, request_mapping_for_regex_config,
+                                                ready_for_body_request):
         """
         find the regex governance rules what matched with request, and return the governance rules id
-        :param regex_governance_rules:
-        :param event:
+        :param request_mapping_for_regex_config: request config generated from event, for regex config matching in gov rules
+        :param governance_rules:
         :param ready_for_body_request:
-        :return:
+        :return: list of gov rule ids that event matched
         """
         matched_rules_id = []
-        request_config_mapping = self.prepare_request_config_based_on_regex_config(event, ready_for_body_request)
-        for id, rule in regex_governance_rules.items():
-            if 'regex_config' not in rule or not rule['regex_config']:
-                continue
-            regex_configs = rule['regex_config']
+        for id, rule in governance_rules.items():
 
-            matched = self.check_request_with_regex_match(regex_configs, request_config_mapping,
-                                                          ready_for_body_request)
+            matched = self.check_event_should_blocked_by_rule(rule, request_mapping_for_regex_config,
+                                                              ready_for_body_request)
 
             if matched:
-                try:
-                    matched_rules_id.append(rule['_id'])
-                except KeyError as ke:
-                    print('[moesif] Error when fetching matched regex governance rule ', ke)
-
+                matched_rules_id.append(id)
         return matched_rules_id
 
-    def block_request_based_on_governance_rule_regex_config(self, event, ready_for_body_request, regex_governance_rules,
-                                                            DEBUG):
+    def block_request_based_on_regex_or_unidentified_entity_governance_rule(self,
+                                                                            request_mapping_for_regex_config,
+                                                                            ready_for_body_request,
+                                                                            regex_governance_rules,
+                                                                            rule_type,
+                                                                            entity_rules,
+                                                                            DEBUG):
         """
         Check if need to block request based on the governance rule regex config associated with the request
-        :param event:
+        :param entity_rules: specific entity rules config {"rule_id": "values for merge tag"}, if merge tag is defined
+        :param rule_type: (user, company or regex)
+        :param request_mapping_for_regex_config:
         :param ready_for_body_request:
         :param regex_governance_rules:
         :param DEBUG:
         :return:
         """
 
-        response_buffer = BlockResponseBufferList()
-        matched_rules_id = self.get_rules_id_if_governance_rule_matched(regex_governance_rules, event,
+        response_buffer = BlockResponseBufferList(rule_type)
+        matched_rules_id = self.get_rules_id_if_governance_rule_matched(regex_governance_rules,
+                                                                        request_mapping_for_regex_config,
                                                                         ready_for_body_request)
 
         if not matched_rules_id:
@@ -417,18 +431,11 @@ class MoesifGovRuleHelper:
                     if DEBUG:
                         print(
                             '[moesif] Skipped blocking request as rule {} is not found'.format(rule_id))
-                        continue
-
-                if 'response' not in governance_rule \
-                        or 'status' not in governance_rule['response'] \
-                        or 'headers' not in governance_rule['response']:
-                    if DEBUG:
-                        print(
-                            '[moesif] Skipped blocking request as response is not set for the governance rule with regex config')
                     continue
 
                 block = governance_rule.get('block', False)
-                gr_status, gr_header, gr_body = self.fetch_governance_rule_response_details(governance_rule)
+                gr_status, gr_header, gr_body = \
+                    self.get_updated_response_with_matched_entity_rules(governance_rule, entity_rules, DEBUG)
 
                 response_buffer.update(block, gr_status, gr_header, gr_body)
                 if DEBUG:
@@ -518,72 +525,167 @@ class MoesifGovRuleHelper:
                     return True
         return False
 
-    def govern_request(self,
-                       event,
-                       user_id, company_id,
-                       req_body_transfer_encoding,
-                       entity_rules,
-                       user_governance_rules,
-                       company_governance_rules,
-                       regex_governance_rules,
-                       DEBUG):
-        user_id_entity = user_id
-        company_id_entity = company_id
+    @classmethod
+    def merge_tag_variables_rule_mapping(cls, governance_rule):
+        merge_tag_variables = {}
+        variables = governance_rule.get('variables', [])
+        for variable in variables:
+            try:
+                name = int(variable['name'])
+                path = variable['path']
+                default_value = variable.get('default', 'UNKNOWN')
+                merge_tag_variables.update(
+                    {
+                        name: {
+                            'path': path,
+                            'default': default_value
+                        }
+                    }
+                )
+            except Exception as e:
+                print('[moesif] Error when parsing rule {} variable'.format(governance_rule.get('id')), e)
+        return merge_tag_variables
+
+    @classmethod
+    def get_entity_rule_mapping_from_config(cls, entity_rules, rule_type_in_config, entity_id):
+        rule_merge_tag_values_mapping = {}
+        try:
+            if entity_id:
+                rules_mapping_from_config = entity_rules[rule_type_in_config][entity_id]
+                for rule_values in rules_mapping_from_config:
+                    rule_id = rule_values['rules']
+                    if rule_id not in rule_merge_tag_values_mapping:
+                        rule_merge_tag_values_mapping[rule_id] = {}
+                    if 'values' in rule_values:
+                        values = rule_values['values']
+                        rule_merge_tag_values_mapping[rule_id].update(values)
+
+        except Exception as e:
+            print('[moesif] Skipped blocking request, Error when fetching entity rule with entity {}, {}'.format(
+                entity_id, e))
+        return rule_merge_tag_values_mapping
+
+    def apply_governance_rules(self,
+                               event,
+                               user_id_entity, company_id_entity,
+                               req_body_transfer_encoding,
+                               entity_rules,
+                               identified_user_governance_rules,
+                               unidentified_user_governance_rules,
+                               identified_company_governance_rules,
+                               unidentified_company_governance_rules,
+                               regex_governance_rules,
+                               DEBUG):
 
         ready_for_body_request = self.ok_request_body_regex_rule(event.request, req_body_transfer_encoding)
         request_mapping_for_regex_config = self.prepare_request_config_based_on_regex_config(event,
                                                                                              ready_for_body_request)
 
-        response_buffers = {}
+        user_rules_mapping_from_config = self.get_entity_rule_mapping_from_config(entity_rules, 'user_rules',
+                                                                                  user_id_entity)
+        company_rules_mapping_from_config = self.get_entity_rule_mapping_from_config(entity_rules, 'company_rules',
+                                                                                     company_id_entity)
+
+        response_buffers = {
+            RuleType.REGEX.value: BlockResponseBufferList(RuleType.REGEX.value),
+            RuleType.COMPANY.value: BlockResponseBufferList(RuleType.COMPANY.value),
+            RuleType.USER.value: BlockResponseBufferList(RuleType.USER.value)
+        }
         if regex_governance_rules:
-            regex_response_buffer = self.block_request_based_on_governance_rule_regex_config(event,
-                                                                                             ready_for_body_request,
-                                                                                             regex_governance_rules,
-                                                                                             DEBUG)
+            regex_response_buffer = self.block_request_based_on_regex_or_unidentified_entity_governance_rule(
+                request_mapping_for_regex_config,
+                ready_for_body_request,
+                regex_governance_rules,
+                RuleType.REGEX.value,
+                {},
+                DEBUG)
             if not regex_response_buffer.blocked:
                 if DEBUG:
                     print('[moesif] No matching with the request from regex rules')
 
-            response_buffers['regex'] = regex_response_buffer
+            response_buffers[RuleType.REGEX.value] = regex_response_buffer
         else:
             if DEBUG:
                 print('[moesif] No regex rules')
 
-        if company_id_entity and company_governance_rules:
-            company_response_buffer = self.block_request_based_on_entity_governance_rule(
+        if unidentified_company_governance_rules:
+            unidentified_company_response_buffer = \
+                self.block_request_based_on_regex_or_unidentified_entity_governance_rule(
+                    request_mapping_for_regex_config,
+                    ready_for_body_request,
+                    unidentified_company_governance_rules,
+                    RuleType.COMPANY.value,
+                    company_rules_mapping_from_config,
+                    DEBUG
+                )
+            if not unidentified_company_response_buffer.blocked:
+                if DEBUG:
+                    print('[moesif] No matching with the request from unidentified company rules')
+            else:
+                response_buffers[RuleType.COMPANY.value] = unidentified_company_response_buffer
+        else:
+            if DEBUG:
+                print('[moesif] no unidentified company governance rules')
+
+        if company_id_entity and identified_company_governance_rules:
+            company_response_buffer = self.block_request_based_on_entity_governance_rule_identified(
                 request_mapping_for_regex_config,
                 ready_for_body_request,
-                company_governance_rules,
-                entity_rules,
-                'company_rules',
+                identified_company_governance_rules,
+                RuleType.COMPANY.value,
+                company_rules_mapping_from_config,
                 company_id_entity,
                 DEBUG)
             if not company_response_buffer.blocked:
                 if DEBUG:
                     print('[moesif] No blocking from company: ', company_id_entity)
-
-            response_buffers['company'] = company_response_buffer
+            else:
+                response_buffers[RuleType.COMPANY.value] = merge_block_response(
+                    response_buffers.get(RuleType.COMPANY.value, BlockResponseBufferList()),
+                    company_response_buffer)
         else:
             if DEBUG:
-                print('[moesif] company_id is not valid or no governance rules for the company')
+                print('[moesif] company_id is not valid or no identified company governance rules')
 
-        if user_id_entity and user_governance_rules:
-            user_response_buffer = self.block_request_based_on_entity_governance_rule(request_mapping_for_regex_config,
-                                                                                      ready_for_body_request,
-                                                                                      user_governance_rules,
-                                                                                      entity_rules,
-                                                                                      'user_rules',
-                                                                                      user_id_entity,
-                                                                                      DEBUG)
+        if unidentified_user_governance_rules:
+            unidentified_user_response_buffer = \
+                self.block_request_based_on_regex_or_unidentified_entity_governance_rule(
+                    request_mapping_for_regex_config,
+                    ready_for_body_request,
+                    unidentified_user_governance_rules,
+                    RuleType.USER.value,
+                    user_rules_mapping_from_config,
+                    DEBUG
+                )
+            if not unidentified_user_response_buffer.blocked:
+                if DEBUG:
+                    print('[moesif] No matching with the request from unidentified user rules')
+            else:
+                response_buffers[RuleType.USER.value] = unidentified_user_response_buffer
+        else:
+            if DEBUG:
+                print('[moesif] no unidentified user governance rules')
 
-            if not user_response_buffer.blocked:
+        if user_id_entity and identified_user_governance_rules:
+            identified_user_response_buffer = self.block_request_based_on_entity_governance_rule_identified(
+                request_mapping_for_regex_config,
+                ready_for_body_request,
+                identified_user_governance_rules,
+                RuleType.USER.value,
+                user_rules_mapping_from_config,
+                user_id_entity,
+                DEBUG)
+
+            if not identified_user_response_buffer.blocked:
                 if DEBUG:
                     print('[moesif] No blocking from user: ', user_id_entity)
-
-            response_buffers['user'] = user_response_buffer
+            else:
+                response_buffers[RuleType.USER.value] = merge_block_response(
+                    response_buffers.get(RuleType.USER.value, BlockResponseBufferList()),
+                    identified_user_response_buffer)
         else:
             if DEBUG:
-                print('[moesif] user_id is not valid or no governance rules for the user')
+                print('[moesif] user_id is not valid or no identified user governance rules')
 
         blocking_response = self.generate_blocking_response(response_buffers)
 

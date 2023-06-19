@@ -1,10 +1,11 @@
+from .governance_rules import RuleType
 from .governance_rule_response import GovernanceRuleBlockResponse
 
 
 class BlockResponseBufferList:
-    def __init__(self):
+    def __init__(self, rule_type=RuleType.REGEX.value):
         self.responses = []
-        self.rule_type = None
+        self.rule_type = rule_type
         self.blocked = False
 
     def update(self, block, updated_gr_status, updated_gr_headers, updated_gr_body):
