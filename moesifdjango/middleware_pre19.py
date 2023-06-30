@@ -72,12 +72,11 @@ class MoesifMiddlewarePre19(object):
         self.sampling_percentage = 100
         self.config_etag = None
         self.last_updated_time = datetime.utcnow()
-        self.last_event_job_run_time = datetime(1970, 1, 1, 0, 0)  # Assuming job never ran, set it to epoch start time
-        self.scheduler = None
+        self._reset_scheduler()
         self.event_queue_size = self.middleware_settings.get('EVENT_QUEUE_SIZE', 10000)
         self.mo_events_queue = queue.Queue(maxsize=self.event_queue_size)
         self.event_batch_size = self.middleware_settings.get('BATCH_SIZE', 25)
-        self.is_event_job_scheduled = False
+
         try:
             if self.config:
                 self.config_etag, self.sampling_percentage, self.last_updated_time = self.app_config.parse_configuration(
@@ -241,30 +240,10 @@ class MoesifMiddlewarePre19(object):
         if self.sampling_percentage >= random_percentage:
             event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
             try:
-                if self.scheduler and self.scheduler.state == STATE_STOPPED:
-                    try:
-                        self.scheduler.remove_job('moesif_events_batch_job')
-                        self.scheduler.shutdown()
-                    except Exception as es:
-                        pass
-                    self.scheduler = None
-                    self.is_event_job_scheduled = False
-                    print("Scheduler is shutdown, it will be restart at", self.last_event_job_run_time + timedelta(
-                        minutes=5))
-
-                if not self.is_event_job_scheduled and datetime.utcnow() > self.last_event_job_run_time + timedelta(
-                        minutes=5):
-                    try:
-                        self.schedule_event_background_job()
-                        self.is_event_job_scheduled = True
-                        self.last_event_job_run_time = datetime.utcnow()
-                    except Exception as ex:
-                        self.is_event_job_scheduled = False
-                        if self.DEBUG:
-                            print('Error while starting the event scheduler job in background')
-                            print(str(ex))
+                # Create scheduler if needed
+                self._create_scheduler_if_needed()
                 if self.DEBUG:
-                    print("Add Event to the queue")
+                    print("Add Event to the queue: ", self.mo_events_queue.qsize())
                 self.mo_events_queue.put(event_model)
             except Exception as ex:
                 if self.DEBUG:
@@ -272,6 +251,50 @@ class MoesifMiddlewarePre19(object):
                     print(str(ex))
 
         return response
+
+    def _reset_scheduler(self):
+        """
+        Private Method to reset scheduler to original `init` (aka null) state.
+        """
+
+        try:
+            # try to  clean up before resetting
+            self.scheduler.remove_job('moesif_events_batch_job')
+            self.scheduler.shutdown()
+        except Exception as es:
+            # ignore because either schedule is null or job is null
+            # cleanup is not needed
+            pass
+        finally:
+            print("----- Event scheduler will start on next event.")
+
+            # Reset initialize it so that next time schedule job is called it gets created again.
+            self.scheduler = None
+            self.is_event_job_scheduled = False
+            self.last_event_job_run_time = datetime(1970, 1, 1, 0, 0)  # Assuming job never ran, set it to epoch start time
+
+    def _create_scheduler_if_needed(self):
+        """
+        Private method to create scheduler if:
+           1. first time OR
+           2. It exists but is in stopped state - so any subsequent add_job will throw exceptions.
+        """
+        # Check if scheduler exist but in stopped state (for some reason stopped by app/diff middlewares)
+        # Reset it so that it can be restarted
+        if self.scheduler and self.scheduler.state == STATE_STOPPED:
+            self._reset_scheduler()
+
+        # Create scheduler if needed
+        if not self.is_event_job_scheduled and datetime.utcnow() > self.last_event_job_run_time + timedelta(minutes=5):
+            try:
+                self.schedule_event_background_job()
+                self.is_event_job_scheduled = True
+                self.last_event_job_run_time = datetime.utcnow()
+            except Exception as ex:
+                self.is_event_job_scheduled = False
+                if self.DEBUG:
+                    print('Error while starting the event scheduler job in background')
+                    print(str(ex))
 
     def update_user(self, user_profile):
         self.user.update_user(user_profile, self.api_client, self.DEBUG)

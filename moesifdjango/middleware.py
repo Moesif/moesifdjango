@@ -86,7 +86,6 @@ class moesif_middleware:
         self.sampling_percentage = 100
         self.config_etag = None
         self.rules_etag = None
-
         self.last_updated_time = datetime.utcnow()
         self._reset_scheduler()
         self.event_queue_size = self.middleware_settings.get('EVENT_QUEUE_SIZE', 10000)
@@ -295,7 +294,7 @@ class moesif_middleware:
                 self._create_scheduler_if_needed()
 
                 if self.DEBUG:
-                    print("Add Event to the queue: " , self.mo_events_queue.qssize())
+                    print("Add Event to the queue: ", self.mo_events_queue.qsize())
                 self.mo_events_queue.put(event_model)
             except Exception as ex:
                 if self.DEBUG:
@@ -306,10 +305,10 @@ class moesif_middleware:
 
     def _reset_scheduler(self):
         """
-        Private Method to reset scheduler to original `init (aka null) state.
+        Private Method to reset scheduler to original `init` (aka null) state.
         """
-        # try to  clean up before resetting
-        try
+        try:
+            # try to  clean up before resetting
             self.scheduler.remove_job('moesif_events_batch_job')
             self.scheduler.shutdown()
         except Exception as es:
@@ -317,13 +316,11 @@ class moesif_middleware:
             # cleanup is not needed
             pass
         finally:
-            # Reset / initialize it so that next time schedule job is called it gets created again.
+            print("----- Event scheduler will start on next event.")
+            # Reset initialize it so that next time schedule job is called it gets created again.
             self.scheduler = None
             self.is_event_job_scheduled = False
             self.last_event_job_run_time = datetime(1970, 1, 1, 0, 0)  # Assuming job never ran, set it to epoch start time
-            print("----- Scheduler is reset and will restart on next event.")
-
-        return
 
     def _create_scheduler_if_needed(self):
         """
@@ -347,7 +344,6 @@ class moesif_middleware:
                 if self.DEBUG:
                     print('Error while starting the event scheduler job in background')
                     print(str(ex))
-        return
 
     def update_user(self, user_profile):
         self.user.update_user(user_profile, self.api_client, self.DEBUG)
