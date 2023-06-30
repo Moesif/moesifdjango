@@ -38,6 +38,7 @@ from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 import atexit
 from .moesif_gov import *
 from .parse_body import ParseBody
+from apscheduler.schedulers.base import STATE_STOPPED
 
 
 class moesif_middleware:
@@ -292,6 +293,17 @@ class moesif_middleware:
         if self.sampling_percentage >= random_percentage:
             event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
             try:
+                if self.scheduler and self.scheduler.state == STATE_STOPPED:
+                    try:
+                        self.scheduler.remove_job('moesif_events_batch_job')
+                        self.scheduler.shutdown()
+                    except Exception as es:
+                        pass
+                    self.scheduler = None
+                    self.is_event_job_scheduled = False
+                    print("Scheduler is shutdown, it will be restart at", self.last_event_job_run_time + timedelta(
+                        minutes=5))
+
                 if not self.is_event_job_scheduled and datetime.utcnow() > self.last_event_job_run_time + timedelta(minutes=5):
                     try:
                         self.schedule_event_background_job()
