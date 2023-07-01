@@ -279,7 +279,7 @@ class moesif_middleware:
                                                       rsp_body_transfer_encoding)
             # Prepare Event Model
             event_model = self.event_mapper.to_event(event_req, event_rsp, user_id, company_id, session_token,
-                                                     metadata)
+                                                     metadata, updated_Response.blocked_by)
 
             # Mask Event Model
             event_model = self.logger_helper.mask_event(event_model, self.middleware_settings, self.DEBUG)

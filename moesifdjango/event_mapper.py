@@ -26,7 +26,7 @@ class EventMapper:
                                   transfer_encoding=transfer_encoding)
 
     @classmethod
-    def to_event(cls, event_req, event_rsp, user_id, company_id, session_token, metadata):
+    def to_event(cls, event_req, event_rsp, user_id, company_id, session_token, metadata, blocked_by=None):
         # Prepare Event Model
         return EventModel(request=event_req,
                           response=event_rsp,
@@ -34,4 +34,5 @@ class EventMapper:
                           company_id=company_id,
                           session_token=session_token,
                           metadata=metadata,
-                          direction="Incoming")
+                          direction="Incoming",
+                          blocked_by=blocked_by)
