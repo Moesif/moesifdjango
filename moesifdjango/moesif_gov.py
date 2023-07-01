@@ -474,7 +474,7 @@ class MoesifGovRuleHelper:
 
     def generate_blocking_response(self, response_buffers):
         """
-        rearrange matching rules' response, merge all of the headers, and ordered by the rules type priority
+        rearrange matching rules' response, merge all the headers, and ordered by the rules type priority
         updated response_body and response_status with the highest priority blocked rule
 
         :param response_buffers:
@@ -486,7 +486,8 @@ class MoesifGovRuleHelper:
         updated_body = None
         updated_status = None
         updated_headers = {}
-        rule_id = None
+        blocked_by = None
+        blocked = False
 
         for rule_type in REVERSED_PRIORITY_RULES_ORDER:
             if rule_type in response_buffers:
@@ -497,11 +498,12 @@ class MoesifGovRuleHelper:
                         if response.blocked:
                             updated_body = response.block_response_body
                             updated_status = response.block_response_status
-                            rule_id = response.rule_id
+                            blocked_by = response.blocked_by
+                            blocked = response.blocked
                         updated_headers.update(response.block_response_headers)
 
         gov_rule_response = GovernanceRuleBlockResponse()
-        gov_rule_response.update_response(updated_status, updated_headers, updated_body, True, rule_id)
+        gov_rule_response.update_response(updated_status, updated_headers, updated_body, blocked, blocked_by)
         return gov_rule_response
 
     @classmethod

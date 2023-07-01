@@ -1,5 +1,4 @@
 class GovernanceRuleBlockResponse:
-    # TODO Create a empty init, and add function
     def __init__(self):
         self.block_response_status = None
         self.block_response_headers = None
@@ -12,6 +11,5 @@ class GovernanceRuleBlockResponse:
         self.block_response_headers = gr_headers
         self.block_response_body = gr_body
         self.blocked = block
-        if self.blocked:
-            self.blocked_by = rule_id
+        self.blocked_by = rule_id
 
