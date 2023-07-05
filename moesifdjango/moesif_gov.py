@@ -324,7 +324,6 @@ class MoesifGovRuleHelper:
         :param ready_for_body_request:
         :param governance_rules:
         :param entity_rules:
-        :param rule_entity_type: the type of rules from config (user_rules, company_rules or regex_rules)
         :param entity_id: user_id or company_id from event
         :param DEBUG:
         :return: object of updated response status, headers and body, if criteria is matched and block is true, otherwise return None
@@ -346,7 +345,8 @@ class MoesifGovRuleHelper:
             if not should_block:
                 if DEBUG:
                     print(
-                        "[moesif] Skipped blocking request because it's not satisfied with governance rule {}".format(
+                        "[moesif] Skipped blocking request because it's not satisfied with {} governance rule {}".format(
+                            rule_type,
                             rule_id))
                 continue
 
@@ -437,9 +437,9 @@ class MoesifGovRuleHelper:
                 gr_status, gr_header, gr_body = \
                     self.get_updated_response_with_matched_entity_rules(governance_rule, entity_rules, DEBUG)
 
-            response_buffer.update(block, gr_status, gr_header, gr_body, rule_id)
-            if DEBUG:
-                print('[moesif] request matched with regex rule with rule_id {}'.format(rule_id))
+                response_buffer.update(block, gr_status, gr_header, gr_body, rule_id)
+                if DEBUG:
+                    print('[moesif] request matched with regex rule with rule_id {}'.format(rule_id))
 
         return response_buffer
 
@@ -614,18 +614,30 @@ class MoesifGovRuleHelper:
                 print('[moesif] No regex rules')
 
         if unidentified_company_governance_rules:
-            unidentified_company_response_buffer = \
-                self.block_request_based_on_regex_or_unidentified_entity_governance_rule(
-                    request_mapping_for_regex_config,
-                    ready_for_body_request,
-                    unidentified_company_governance_rules,
-                    RuleType.COMPANY.value,
-                    company_rules_mapping_from_config,
-                    DEBUG
-                )
-            if not unidentified_company_response_buffer.blocked:
+            if not company_id_entity:
+                unidentified_company_response_buffer = \
+                    self.block_request_based_on_regex_or_unidentified_entity_governance_rule(
+                        request_mapping_for_regex_config,
+                        ready_for_body_request,
+                        unidentified_company_governance_rules,
+                        RuleType.COMPANY.value,
+                        company_rules_mapping_from_config,
+                        DEBUG
+                    )
+            else:
+                unidentified_company_response_buffer = \
+                    self.block_request_based_on_entity_governance_rule_identified(
+                        request_mapping_for_regex_config,
+                        ready_for_body_request,
+                        unidentified_company_governance_rules,
+                        RuleType.COMPANY.value,
+                        company_rules_mapping_from_config,
+                        company_id_entity,
+                        DEBUG)
+            if not unidentified_company_response_buffer or not unidentified_company_response_buffer.blocked:
                 if DEBUG:
-                    print('[moesif] No matching with the request from unidentified company rules')
+                    print('[moesif] No matching with the request from unidentified company rules for {}'
+                          .format(company_id_entity if company_id_entity else 'unidentified company'))
             else:
                 response_buffers[RuleType.COMPANY.value] = unidentified_company_response_buffer
         else:
@@ -643,33 +655,45 @@ class MoesifGovRuleHelper:
                 DEBUG)
             if not company_response_buffer.blocked:
                 if DEBUG:
-                    print('[moesif] No blocking from company: ', company_id_entity)
+                    print('[moesif] No matching with the request from identified company rules for {}'.format(company_id_entity))
             else:
                 response_buffers[RuleType.COMPANY.value] = merge_block_response(
                     response_buffers.get(RuleType.COMPANY.value, BlockResponseBufferList()),
                     company_response_buffer)
         else:
             if DEBUG:
-                print('[moesif] company_id is not valid or no identified company governance rules')
+                print('[moesif] company_id is unidentified or no identified company governance rules')
 
         if unidentified_user_governance_rules:
-            unidentified_user_response_buffer = \
-                self.block_request_based_on_regex_or_unidentified_entity_governance_rule(
+            if not user_id_entity:
+                unidentified_user_response_buffer = \
+                    self.block_request_based_on_regex_or_unidentified_entity_governance_rule(
+                        request_mapping_for_regex_config,
+                        ready_for_body_request,
+                        unidentified_user_governance_rules,
+                        RuleType.USER.value,
+                        user_rules_mapping_from_config,
+                        DEBUG
+                    )
+            else:
+                unidentified_user_response_buffer = self.block_request_based_on_entity_governance_rule_identified(
                     request_mapping_for_regex_config,
                     ready_for_body_request,
                     unidentified_user_governance_rules,
                     RuleType.USER.value,
                     user_rules_mapping_from_config,
-                    DEBUG
-                )
-            if not unidentified_user_response_buffer.blocked:
+                    user_id_entity,
+                    DEBUG)
+            if not unidentified_user_response_buffer or not unidentified_user_response_buffer.blocked:
                 if DEBUG:
-                    print('[moesif] No matching with the request from unidentified user rules')
+                    print('[moesif] No matching with the request from unidentified user rules for {}'.format(
+                        user_id_entity if user_id_entity else "unidentified user"
+                    ))
             else:
                 response_buffers[RuleType.USER.value] = unidentified_user_response_buffer
         else:
             if DEBUG:
-                print('[moesif] no unidentified user governance rules')
+                print('[moesif] No unidentified user governance rules')
 
         if user_id_entity and identified_user_governance_rules:
             identified_user_response_buffer = self.block_request_based_on_entity_governance_rule_identified(
@@ -683,14 +707,15 @@ class MoesifGovRuleHelper:
 
             if not identified_user_response_buffer.blocked:
                 if DEBUG:
-                    print('[moesif] No blocking from user: ', user_id_entity)
+                    print('[moesif] No matching with the request from identified user rules for {}'.format(
+                        user_id_entity))
             else:
                 response_buffers[RuleType.USER.value] = merge_block_response(
                     response_buffers.get(RuleType.USER.value, BlockResponseBufferList()),
                     identified_user_response_buffer)
         else:
             if DEBUG:
-                print('[moesif] user_id is not valid or no identified user governance rules')
+                print('[moesif] user_id is unidentified or no identified user governance rules')
 
         blocking_response = self.generate_blocking_response(response_buffers)
 
