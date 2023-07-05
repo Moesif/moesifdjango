@@ -355,7 +355,7 @@ class MoesifGovRuleHelper:
                 governance_rule, entity_rules, DEBUG)
 
             block = governance_rule.get('block', False)
-            response_buffer.update(block, updated_gr_status, updated_gr_headers, updated_gr_body)
+            response_buffer.update(block, updated_gr_status, updated_gr_headers, updated_gr_body, rule_id)
 
             if DEBUG:
                 print("[moesif] request matched with rule_id [{}]".format(rule_id))
@@ -437,9 +437,10 @@ class MoesifGovRuleHelper:
                 gr_status, gr_header, gr_body = \
                     self.get_updated_response_with_matched_entity_rules(governance_rule, entity_rules, DEBUG)
 
-                response_buffer.update(block, gr_status, gr_header, gr_body)
-                if DEBUG:
-                    print('[moesif] request matched with regex rule with rule_id {}'.format(rule_id))
+            response_buffer.update(block, gr_status, gr_header, gr_body, rule_id)
+            if DEBUG:
+                print('[moesif] request matched with regex rule with rule_id {}'.format(rule_id))
+
         return response_buffer
 
     # TODO can deal with request.body in one place
@@ -488,7 +489,7 @@ class MoesifGovRuleHelper:
 
     def generate_blocking_response(self, response_buffers):
         """
-        rearrange matching rules' response, merge all of the headers, and ordered by the rules type priority
+        rearrange matching rules' response, merge all the headers, and ordered by the rules type priority
         updated response_body and response_status with the highest priority blocked rule
 
         :param response_buffers:
@@ -500,6 +501,8 @@ class MoesifGovRuleHelper:
         updated_body = None
         updated_status = None
         updated_headers = {}
+        blocked_by = None
+        blocked = False
 
         for rule_type in REVERSED_PRIORITY_RULES_ORDER:
             if rule_type in response_buffers:
@@ -510,10 +513,12 @@ class MoesifGovRuleHelper:
                         if response.blocked:
                             updated_body = response.block_response_body
                             updated_status = response.block_response_status
+                            blocked_by = response.blocked_by
+                            blocked = response.blocked
                         updated_headers.update(response.block_response_headers)
 
         gov_rule_response = GovernanceRuleBlockResponse()
-        gov_rule_response.update_response(updated_status, updated_headers, updated_body, True)
+        gov_rule_response.update_response(updated_status, updated_headers, updated_body, blocked, blocked_by)
         return gov_rule_response
 
     @classmethod
