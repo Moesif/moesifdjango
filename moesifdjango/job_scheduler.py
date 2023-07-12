@@ -58,10 +58,14 @@ class JobScheduler:
                     break
 
             if batch_events:
+                req_time = batch_events[0].request.time
                 batch_response_config_etag, batch_response_rules_etag = self.send_events(api_client, batch_events, debug)
                 batch_events[:] = []
                 # Set the last time event job ran after sending events
-                return batch_response_config_etag, batch_response_rules_etag, datetime.utcnow()
+                batch_send_time = datetime.utcnow()
+                if debug and batch_send_time - req_time > 60:
+                    print("Events were sent after " + str(batch_send_time - req_time))
+                return batch_response_config_etag, batch_response_rules_etag, batch_send_time
             else:
                 if debug:
                     print("No events to send")
