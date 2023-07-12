@@ -49,7 +49,7 @@ class JobScheduler:
 
 
     def batch_events(self, api_client, moesif_events_queue, debug, batch_size):
-
+        print("Starting batch events job")
         batch_events = []
         try:
             while not moesif_events_queue.empty():
@@ -59,12 +59,14 @@ class JobScheduler:
 
             if batch_events:
                 req_time = batch_events[0].request.time
+                req_time = datetime.strptime(req_time, '%Y-%m-%dT%H:%M:%S.%f')
                 batch_response_config_etag, batch_response_rules_etag = self.send_events(api_client, batch_events, debug)
                 batch_events[:] = []
                 # Set the last time event job ran after sending events
                 batch_send_time = datetime.utcnow()
-                if debug and batch_send_time - req_time > 60:
-                    print("Events were sent after " + str(batch_send_time - req_time))
+                delta = batch_send_time - req_time
+                if debug and delta.total_seconds() > 0:
+                    print("Warning: It took %s seconds to send events to Moesif. req.time=%s now=%s"%(delta.total_seconds(), req_time, batch_send_time))
                 return batch_response_config_etag, batch_response_rules_etag, batch_send_time
             else:
                 if debug:
