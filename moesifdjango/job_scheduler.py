@@ -65,12 +65,10 @@ class JobScheduler:
                 # Set the last time event job ran after sending events
                 batch_send_time = datetime.utcnow()
                 delta = batch_send_time - req_time
-                if debug and delta.total_seconds() > 0:
+                if debug and delta.total_seconds() > 60:
                     print("Warning: It took %s seconds to send events to Moesif. req.time=%s now=%s"%(delta.total_seconds(), req_time, batch_send_time))
                 return batch_response_config_etag, batch_response_rules_etag, batch_send_time
             else:
-                if debug:
-                    print("No events to send")
                 # Set the last time event job ran but no message to read from the queue
                 return None, None, datetime.utcnow()
         except Exception as e:
