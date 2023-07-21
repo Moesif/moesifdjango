@@ -49,7 +49,6 @@ class JobScheduler:
 
 
     def batch_events(self, api_client, moesif_events_queue, debug, batch_size):
-        print("Starting batch events job")
         batch_events = []
         try:
             while not moesif_events_queue.empty():

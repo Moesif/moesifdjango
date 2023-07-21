@@ -145,6 +145,7 @@ class moesif_middleware:
             if not self.scheduler.get_jobs():
                 self.scheduler.add_listener(self.event_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
                 self.scheduler.start()
+                print("Starting batch events job")
                 self.scheduler.add_job(
                     func=lambda: self.job_scheduler.batch_events(self.api_client, self.mo_events_queue, self.DEBUG,
                                                                  self.event_batch_size),
