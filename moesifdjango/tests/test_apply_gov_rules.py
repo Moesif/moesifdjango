@@ -70,6 +70,10 @@ class GovRulesTestCase(unittest.TestCase):
             }
         }
 
+        self.non_empty_entity_rules = {"642f4fcea6ca1c38705d660d":{'0': 'u1'}}
+        self.non_empty_entity_rules2 = {"xxx": {'0': 'u1'}}
+        self.empty_entity_rules = {}
+
         self.new_schema_regex_gov_rule = {
             "_id": "6439b3f5d5762a04c0623d8b",
             "regex_config": [
@@ -204,11 +208,41 @@ class GovRulesTestCase(unittest.TestCase):
                                                                           'user_rules', 'u1')
         print(rule_values)
 
-    def test_check_event_should_blocked_by_rule_should_block(self):
+    def test_should_block(self):
         block = self.gov_helper.check_event_should_blocked_by_rule(self.user_gov_rule,
+                                                                   self.non_empty_entity_rules,
                                                                    self.request_mapping_for_regex_config,
                                                                    self.ready_for_body_request)
         self.assertEqual(block, True)
+
+    def test_should_not_block(self):
+        # event match & 0 entity rules
+        block = self.gov_helper.check_event_should_blocked_by_rule(self.user_gov_rule,
+                                                                   self.empty_entity_rules,
+                                                                   self.request_mapping_for_regex_config,
+                                                                   self.ready_for_body_request)
+        self.assertEqual(block, False)
+
+        # event match & other entity rules(not in cohort)
+        block = self.gov_helper.check_event_should_blocked_by_rule(self.user_gov_rule,
+                                                                   self.non_empty_entity_rules2,
+                                                                   self.request_mapping_for_regex_config,
+                                                                   self.ready_for_body_request)
+        self.assertEqual(block, False)
+
+        # event not match & matched entity rules(in cohort)
+        block = self.gov_helper.check_event_should_blocked_by_rule(self.user_gov_rule,
+                                                                   self.non_empty_entity_rules,
+                                                                   self.request_mapping_for_regex_config2,
+                                                                   self.ready_for_body_request)
+        self.assertEqual(block, False)
+
+        # event not match & matched entity rules(in cohort)
+        block = self.gov_helper.check_event_should_blocked_by_rule(self.user_gov_rule,
+                                                                   self.non_empty_entity_rules2,
+                                                                   self.request_mapping_for_regex_config2,
+                                                                   self.ready_for_body_request)
+        self.assertEqual(block, False)
 
     def test_check_event_should_blocked_by_rule_should_not_block(self):
         self.request_mapping_for_regex_config['request.route'] = 'http://127.0.0.1:8000/groups/'

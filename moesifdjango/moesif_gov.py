@@ -330,8 +330,8 @@ class MoesifGovRuleHelper:
         """
         response_buffer = BlockResponseBufferList(rule_type)
 
-        for rule_id, _ in entity_rules.items():
-            governance_rule = governance_rules.get(rule_id, None)
+        # for rule_id, _ in entity_rules.items():
+        for rule_id, governance_rule in governance_rules.items():
 
             if not governance_rule or 'response' not in governance_rule or 'status' not in governance_rule['response']:
                 if DEBUG:
@@ -340,7 +340,7 @@ class MoesifGovRuleHelper:
                         entity_id)
                 continue
 
-            should_block = self.check_event_should_blocked_by_rule(governance_rule, request_mapping_for_regex_config, ready_for_body_request)
+            should_block = self.check_event_should_blocked_by_rule(governance_rule, entity_rules, request_mapping_for_regex_config, ready_for_body_request)
 
             if not should_block:
                 if DEBUG:
@@ -363,6 +363,7 @@ class MoesifGovRuleHelper:
         return response_buffer
 
     def check_event_should_blocked_by_rule(self, governance_rule,
+                                           entity_rules,
                                            request_mapping_for_regex_config,
                                            ready_for_body_request):
         applied_to = governance_rule.get('applied_to', AppliedTo.MATCHING.value)
@@ -376,8 +377,14 @@ class MoesifGovRuleHelper:
             request_mapping_for_regex_config,
             ready_for_body_request)
 
-        return (matched and applied_to == AppliedTo.MATCHING.value) \
-               or (not matched and applied_to == AppliedTo.NOT_MATCHING.value)
+        in_cohort = self.is_in_cohort(entity_rules, governance_rule.get('_id'))
+
+        return (matched and in_cohort and applied_to == AppliedTo.MATCHING.value) \
+               or (not matched and not in_cohort and applied_to == AppliedTo.NOT_MATCHING.value)
+
+    def is_in_cohort(self, entity_rules, rule_id):
+        return entity_rules is not None and len(entity_rules) != 0 and rule_id in entity_rules
+
 
     def get_rules_id_if_governance_rule_matched(self, governance_rules, request_mapping_for_regex_config,
                                                 ready_for_body_request):
@@ -391,7 +398,7 @@ class MoesifGovRuleHelper:
         matched_rules_id = []
         for id, rule in governance_rules.items():
 
-            matched = self.check_event_should_blocked_by_rule(rule, request_mapping_for_regex_config,
+            matched = self.check_event_should_blocked_by_rule(rule, {}, request_mapping_for_regex_config,
                                                               ready_for_body_request)
 
             if matched:
@@ -552,18 +559,22 @@ class MoesifGovRuleHelper:
         return merge_tag_variables
 
     @classmethod
-    def get_entity_rule_mapping_from_config(cls, entity_rules, rule_type_in_config, entity_id):
+    def get_entity_rule_mapping_from_config(cls, entity_rules, rule_type, entity_id):
         rule_merge_tag_values_mapping = {}
         try:
             if entity_id:
-                rules_mapping_from_config = entity_rules[rule_type_in_config][entity_id]
-                for rule_values in rules_mapping_from_config:
-                    rule_id = rule_values['rules']
-                    if rule_id not in rule_merge_tag_values_mapping:
-                        rule_merge_tag_values_mapping[rule_id] = {}
-                    if 'values' in rule_values:
-                        values = rule_values['values']
-                        rule_merge_tag_values_mapping[rule_id].update(values)
+                entities_rules = entity_rules[rule_type]
+                if entity_id in entities_rules:
+                    rules_mapping_from_config = entities_rules[entity_id]
+                    for rule_values in rules_mapping_from_config:
+                        rule_id = rule_values['rules']
+                        if rule_id not in rule_merge_tag_values_mapping:
+                            rule_merge_tag_values_mapping[rule_id] = {}
+                        if 'values' in rule_values:
+                            values = rule_values['values']
+                            rule_merge_tag_values_mapping[rule_id].update(values)
+                        else:
+                            rule_merge_tag_values_mapping[rule_id] = {}
 
         except Exception as e:
             print('[moesif] Skipped blocking request, Error when fetching entity rule with entity {}, {}'.format(
