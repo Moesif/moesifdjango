@@ -88,7 +88,7 @@ class moesif_middleware:
         self.rules_etag = None
         self.last_updated_time = datetime.utcnow()
         self._reset_scheduler()
-        self.event_queue_size = self.middleware_settings.get('EVENT_QUEUE_SIZE', 10000)
+        self.event_queue_size = self.middleware_settings.get('EVENT_QUEUE_SIZE', 1000000)
         self.mo_events_queue = queue.Queue(maxsize=self.event_queue_size)
         self.event_batch_size = self.middleware_settings.get('BATCH_SIZE', 25)
         try:
