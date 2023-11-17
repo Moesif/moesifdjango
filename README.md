@@ -118,7 +118,7 @@ to add custom metadata that will be associated with the event. The metadata must
 (optional) __int__, default 25, Maximum batch size when sending to Moesif.
 
 #### __`EVENT_QUEUE_SIZE`__
-(optional) __int__, default 10000, Maximum number of events to hold in queue before sending to Moesif. In case of network issues when not able to connect/send event to Moesif, skips adding new to event to queue to prevent memory overflow.
+(optional) __int__, default 1000000, Maximum number of events to hold in queue before sending to Moesif. In case of network issues when not able to connect/send event to Moesif, skips adding new to event to queue to prevent memory overflow.
 
 #### __`AUTHORIZATION_HEADER_NAME`__
 (optional) _string_, A request header field name used to identify the User in Moesif. Default value is `authorization`. Also, supports a comma separated string. We will check headers in order like `"X-Api-Key,Authorization"`.
