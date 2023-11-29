@@ -289,3 +289,12 @@ class LoggerHelper:
             if debug:
                 print("Can not execute mask_event_model function. Please check moesif settings.")
         return event_model
+
+    # Function to get configuration uri
+    @classmethod
+    def get_configuration_uri(cls, settings, field, deprecated_field):
+        uri = settings.get(field)
+        if uri:
+            return uri
+        else:
+            return settings.get(deprecated_field, 'https://api.moesif.net')
