@@ -49,10 +49,9 @@ class moesif_middleware:
         self.DEBUG = self.middleware_settings.get('LOCAL_DEBUG', False)
         self.LOG_BODY = self.middleware_settings.get('LOG_BODY', True)
         self.client = MoesifAPIClient(self.middleware_settings.get('APPLICATION_ID'))
-        # below comment for setting moesif base_uri to a test server.
-        if self.middleware_settings.get('LOCAL_DEBUG', False):
-            Configuration.BASE_URI = self.get_configuration_uri(self.middleware_settings, 'BASE_URI', 'LOCAL_MOESIF_BASEURL')
-        Configuration.version = 'moesifdjango-python/2.2.0'
+        self.logger_helper = LoggerHelper()
+        Configuration.BASE_URI = self.logger_helper.get_configuration_uri(self.middleware_settings, 'BASE_URI', 'LOCAL_MOESIF_BASEURL')
+        Configuration.version = 'moesifdjango-python/2.3.6'
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
@@ -67,7 +66,6 @@ class moesif_middleware:
         self.api_client.http_call_back = self.response_catcher
         self.app_config = AppConfig()
         self.client_ip = ClientIp()
-        self.logger_helper = LoggerHelper()
         self.event_mapper = EventMapper()
         self.job_scheduler = JobScheduler()
         self.mask_helper = MaskData()
@@ -99,14 +97,6 @@ class moesif_middleware:
             if self.DEBUG:
                 print('Error while parsing application configuration on initialization')
                 print(str(e))
-
-    # Function to get configuration uri
-    def get_configuration_uri(self, settings, field, deprecated_field):
-        uri = settings.get(field)
-        if uri:
-            return uri
-        else:
-            return settings.get(deprecated_field, 'https://api.moesif.net')
 
     # Function to listen to the send event job response
     def event_listener(self, event):
