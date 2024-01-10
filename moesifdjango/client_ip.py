@@ -22,7 +22,7 @@ class ClientIp:
                 return None
 
             if not isinstance(value, str):
-                logger.info("Expected a string, got -" + str(type(value)))
+                logger.info(f"Expected a string, got - {str(type(value))}")
             else:
                 # x-forwarded-for may return multiple IP addresses in the format:
                 # "client IP, proxy 1 IP, proxy 2 IP"

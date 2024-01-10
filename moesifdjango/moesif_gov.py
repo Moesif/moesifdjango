@@ -39,7 +39,7 @@ class MoesifGovRuleHelper:
                         f"[moesif] config got {len(entity_rules['user_rules'])} cohort users and {len(entity_rules['company_rules'])} cohort companies")
 
         except Exception as e:
-            logger.warning("[moesif] Error when fetching raw_body from config, ", e)
+            logger.warning(f"[moesif] Error when fetching raw_body from config, {str(e)}")
 
         return entity_rules
 
@@ -143,7 +143,7 @@ class MoesifGovRuleHelper:
                     condition_path_value_mapping[condition['path']] = condition['value']
 
                 except KeyError as ke:
-                    logger.info('[moesif] Error when fetching info from regex config each condition: ', ke)
+                    logger.info(f'[moesif] Error when fetching info from regex config each condition: {str(ke)}')
                 except Exception as e:
                     logger.info(e)
 
@@ -154,7 +154,7 @@ class MoesifGovRuleHelper:
                         if not ready_for_body_request:
                             continue
                 except Exception as e:
-                    logger.info("[moesif] Error when matching path starts with request\\.body\\", e)
+                    logger.info(f"[moesif] Error when matching path starts with request\\.body\\: {str(e)}")
 
                 # Check if the path exists in the request config mapping
                 if path in request_mapping_for_regex_config:
@@ -280,7 +280,7 @@ class MoesifGovRuleHelper:
                 try:
                     updated_gr_values[int(k)] = v
                 except Exception as e:
-                    logger.info('[moesif] Error when converting entity rules values key: ', e)
+                    logger.info(f'[moesif] Error when converting entity rules values key: {str(e)}')
 
             updated_gr_headers = self.transform_values(updated_gr_headers, updated_gr_values)
             updated_gr_body = self.transform_values(updated_gr_body, updated_gr_values)
@@ -392,7 +392,7 @@ class MoesifGovRuleHelper:
                 try:
                     matched_rules_id.append(rule['_id'])
                 except KeyError as ke:
-                    logger.info('[moesif] Error when fetching matched regex governance rule ', ke)
+                    logger.info(f'[moesif] Error when fetching matched regex governance rule {str(ke)}')
 
         return matched_rules_id
 
@@ -561,7 +561,7 @@ class MoesifGovRuleHelper:
                 DEBUG)
             if not company_response_buffer.blocked:
                 if DEBUG:
-                    logger.info('[moesif] No blocking from company: ', company_id_entity)
+                    logger.info(f'[moesif] No blocking from company: {str(company_id_entity)}')
 
             response_buffers['company'] = company_response_buffer
         else:
@@ -579,7 +579,7 @@ class MoesifGovRuleHelper:
 
             if not user_response_buffer.blocked:
                 if DEBUG:
-                    logger.info('[moesif] No blocking from user: ', user_id_entity)
+                    logger.info(f'[moesif] No blocking from user: {str(user_id_entity)}')
 
             response_buffers['user'] = user_response_buffer
         else:

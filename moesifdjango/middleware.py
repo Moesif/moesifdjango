@@ -95,7 +95,7 @@ class moesif_middleware:
                     self.config, self.DEBUG)
         except Exception as e:
             if self.DEBUG:
-                logger.info('Error while parsing application configuration on initialization', e)
+                logger.info(f'Error while parsing application configuration on initialization: {str(e)}')
 
     # Function to listen to the send event job response
     def event_listener(self, event):
@@ -117,7 +117,7 @@ class moesif_middleware:
 
                         except Exception as ex:
                             if self.DEBUG:
-                                logger.info('Error while updating the application configuration', ex)
+                                logger.info(f'Error while updating the application configuration: {str(ex)}')
 
                 if response_rules_etag:
                     if not self.rules_etag or self.rules_etag != response_rules_etag:
@@ -150,7 +150,7 @@ class moesif_middleware:
                 atexit.register(lambda: self.job_scheduler.exit_handler(self.scheduler, self.DEBUG))
         except Exception as ex:
             if self.DEBUG:
-                logger.info("Error when scheduling the job", ex)
+                logger.info(f"Error when scheduling the job: {str(ex)}")
 
     def __call__(self, request):
         # Code to be executed for each request before
@@ -159,7 +159,7 @@ class moesif_middleware:
         # Request Time
         req_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
         if self.DEBUG:
-            logger.info("event request time: ", req_time)
+            logger.info(f"event request time: {str(req_time)}")
 
         # Initialize Transaction Id
         transaction_id = None
@@ -181,7 +181,7 @@ class moesif_middleware:
         # Response Time
         rsp_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
         if self.DEBUG:
-            logger.info("event response time: ", rsp_time)
+            logger.info(f"event response time: {str(rsp_time)}")
 
         # Check if need to skip logging event
         skip_event_response = self.logger_helper.skip_event(request, response, self.middleware_settings, self.DEBUG)
@@ -282,11 +282,11 @@ class moesif_middleware:
                 self._create_scheduler_if_needed()
 
                 if self.DEBUG:
-                    logger.info("Add Event to the queue: ", self.mo_events_queue.qsize())
+                    logger.info(f"Add Event to the queue: {str(self.mo_events_queue.qsize())}")
                 self.mo_events_queue.put(event_model)
             except Exception as ex:
                 if self.DEBUG:
-                    logger.info("Error while adding event to the queue", ex)
+                    logger.info(f"Error while adding event to the queue: {str(ex)}")
 
         return response
 
@@ -329,7 +329,7 @@ class moesif_middleware:
             except Exception as ex:
                 self.is_event_job_scheduled = False
                 if self.DEBUG:
-                    logger.info('Error while starting the event scheduler job in background', ex)
+                    logger.info(f'Error while starting the event scheduler job in background: {str(ex)}')
 
     def update_user(self, user_profile):
         self.user.update_user(user_profile, self.api_client, self.DEBUG)

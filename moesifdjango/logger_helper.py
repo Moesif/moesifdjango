@@ -45,16 +45,16 @@ class LoggerHelper:
             req_headers = self.mask_helper.mask_headers(req_headers, middleware_settings.get('REQUEST_HEADER_MASKS'))
         except Exception as inst:
             if debug:
-                logger.info("error encountered while copying request header", inst)
+                logger.info(f"error encountered while copying request header: {str(inst)}")
             req_headers = {}
 
         if debug:
             logger.info("about to print what is in meta %d " % len(request.META))
             for x in request.META:
-                logger.info(x, ':', request.META[x])
+                logger.info(f'{x}: {request.META[x]}')
             logger.info("about to print headers %d " % len(req_headers))
             for x in req_headers:
-                logger.info(x, ':', req_headers[x])
+                logger.info(f'{x}: {req_headers[x]}')
 
         req_headers = {k: self.flatten_to_string(v) for k, v in req_headers.items()}
         return req_headers
@@ -154,7 +154,7 @@ class LoggerHelper:
                 return str(json_decode[field])
         except Exception as e:
             if debug:
-                logger.info("Error while parsing authorization header to fetch user id.", e)
+                logger.info(f"Error while parsing authorization header to fetch user id: {str(e)}")
         return None
 
     def get_user_id(self, middleware_settings, request, response, request_headers, debug):
@@ -225,7 +225,7 @@ class LoggerHelper:
                                 user_id = self.parse_authorization_header(token, field, debug)
         except Exception as e:
             if debug:
-                logger.info("can not execute identify_user function, please check moesif settings.", e)
+                logger.info(f"can not execute identify_user function, please check moesif settings: {str(e)}")
         return user_id
 
     @classmethod

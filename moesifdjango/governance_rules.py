@@ -21,12 +21,12 @@ class GovernanceRulesCacher:
             if 401 <= inst.response_code <= 403:
                 logger.error("[moesif] Unauthorized access getting application configuration. Please check your Appplication Id.")
             if DEBUG:
-                logger.info("[moesif] Error getting governance rules, with status code:", inst.response_code)
+                logger.info(f"[moesif] Error getting governance rules, with status code: {str(inst.response_code)}")
             return None
 
         except Exception as ex:
             if DEBUG:
-                logger.info("[moesif] Error getting governance rules:", ex)
+                logger.info(f"[moesif] Error getting governance rules: {str(ex)}")
             return None
 
     def generate_rules_caching(self, DEBUG):
@@ -47,12 +47,12 @@ class GovernanceRulesCacher:
                     if rule_type in rule_types:
                         rules_type_mapping[rule_type][rule_id] = rule
                     else:
-                        logger.info('[moesif] Get parsed rule type {} is not valid'.format(rule['type']))
+                        logger.info(f"[moesif] Get parsed rule type {rule['type']} is not valid")
 
                     self.user_rules = rules_type_mapping['user']
                     self.company_rules = rules_type_mapping['company']
                     self.regex_rules = rules_type_mapping['regex']
         except Exception as e:
-            logger.warning("[moesif] Error when parsing rules response: ", e)
+            logger.warning(f"[moesif] Error when parsing rules response: {str(e)}")
 
         return self.user_rules, self.company_rules, self.regex_rules
