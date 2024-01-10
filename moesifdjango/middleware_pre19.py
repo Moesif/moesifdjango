@@ -49,11 +49,11 @@ class MoesifMiddlewarePre19(object):
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
-                    print('Start capturing outgoing requests')
+                    logger.info('Start capturing outgoing requests')
                 # Start capturing outgoing requests
                 StartCapture().start_capture_outgoing(settings.MOESIF_MIDDLEWARE)
             except:
-                print('Error while starting to capture the outgoing events')
+                logger.warning('Error while starting to capture the outgoing events')
         self.api_version = self.middleware_settings.get('API_VERSION')
         self.api_client = self.client.api
         response_catcher = HttpResponseCatcher()
@@ -81,14 +81,14 @@ class MoesifMiddlewarePre19(object):
                     self.config, self.DEBUG)
         except:
             if self.DEBUG:
-                print('Error while parsing application configuration on initialization')
+                logger.info('Error while parsing application configuration on initialization')
         self.transaction_id = None
 
     # Function to listen to the send event job response
     def event_listener(self, event):
         if event.exception:
             if self.DEBUG:
-                print('Error reading response from the scheduled event job')
+                logger.info('Error reading response from the scheduled event job')
         else:
             if event.retval:
                 response_etag, self.last_event_job_run_time = event.retval
@@ -102,8 +102,8 @@ class MoesifMiddlewarePre19(object):
                                                                 self.last_updated_time, self.api_client, self.DEBUG)
                     except Exception as ex:
                         if self.DEBUG:
-                            print('Error while updating the application configuration')
-                            print(str(ex))
+                            logger.info('Error while updating the application configuration')
+                            logger.info(str(ex))
 
     # Function to schedule send event job in async
     def schedule_event_background_job(self):
@@ -129,8 +129,8 @@ class MoesifMiddlewarePre19(object):
                 atexit.register(lambda: self.job_scheduler.exit_handler(self.scheduler, self.DEBUG))
         except Exception as ex:
             if self.DEBUG:
-                print("Error when scheduling the job")
-                print(str(ex))
+                logger.info("Error when scheduling the job")
+                logger.info(str(ex))
 
     @classmethod
     def process_request(cls, request):
@@ -149,10 +149,10 @@ class MoesifMiddlewarePre19(object):
         # Request time
         req_time = request.moesif_req_time
         if self.DEBUG:
-            print("event request time: ", req_time)
+            logger.info("event request time: ", req_time)
 
         if self.DEBUG:
-            print("raw body before getting response")
+            logger.info("raw body before getting response")
 
         # response = get_response(request)
         # Code to be executed for each request/response after
@@ -160,7 +160,7 @@ class MoesifMiddlewarePre19(object):
         # Response Time
         rsp_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
         if self.DEBUG:
-            print("event response time: ", rsp_time)
+            logger.info("event response time: ", rsp_time)
 
         # Check if need to skip logging event
         skip_event_response = self.logger_helper.skip_event(request, response, self.middleware_settings, self.DEBUG)
@@ -233,12 +233,12 @@ class MoesifMiddlewarePre19(object):
                 # Create scheduler if needed
                 self._create_scheduler_if_needed()
                 if self.DEBUG:
-                    print("Add Event to the queue: ", self.mo_events_queue.qsize())
+                    logger.info("Add Event to the queue: ", self.mo_events_queue.qsize())
                 self.mo_events_queue.put(event_model)
             except Exception as ex:
                 if self.DEBUG:
-                    print("Error while adding event to the queue")
-                    print(str(ex))
+                    logger.info("Error while adding event to the queue")
+                    logger.info(str(ex))
 
         return response
 
@@ -256,7 +256,7 @@ class MoesifMiddlewarePre19(object):
             # cleanup is not needed
             pass
         finally:
-            print("----- Event scheduler will start on next event.")
+            logger.info("----- Event scheduler will start on next event.")
 
             # Reset initialize it so that next time schedule job is called it gets created again.
             self.scheduler = None
@@ -283,8 +283,8 @@ class MoesifMiddlewarePre19(object):
             except Exception as ex:
                 self.is_event_job_scheduled = False
                 if self.DEBUG:
-                    print('Error while starting the event scheduler job in background')
-                    print(str(ex))
+                    logger.info('Error while starting the event scheduler job in background')
+                    logger.info(str(ex))
 
     def update_user(self, user_profile):
         self.user.update_user(user_profile, self.api_client, self.DEBUG)

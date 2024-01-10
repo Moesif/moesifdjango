@@ -1,6 +1,8 @@
 import json
 from moesifapi import APIException
+import logging
 
+logger = logging.getLogger(__name__)
 
 class GovernanceRulesCacher:
 
@@ -17,14 +19,14 @@ class GovernanceRulesCacher:
             return rules
         except APIException as inst:
             if 401 <= inst.response_code <= 403:
-                print("[moesif] Unauthorized access getting application configuration. Please check your Appplication Id.")
+                logger.error("[moesif] Unauthorized access getting application configuration. Please check your Appplication Id.")
             if DEBUG:
-                print("[moesif] Error getting governance rules, with status code:", inst.response_code)
+                logger.info("[moesif] Error getting governance rules, with status code:", inst.response_code)
             return None
 
         except Exception as ex:
             if DEBUG:
-                print("[moesif] Error getting governance rules:", ex)
+                logger.info("[moesif] Error getting governance rules:", ex)
             return None
 
     def generate_rules_caching(self, DEBUG):
@@ -45,12 +47,12 @@ class GovernanceRulesCacher:
                     if rule_type in rule_types:
                         rules_type_mapping[rule_type][rule_id] = rule
                     else:
-                        print('[moesif] Get parsed rule type {} is not valid'.format(rule['type']))
+                        logger.info('[moesif] Get parsed rule type {} is not valid'.format(rule['type']))
 
                     self.user_rules = rules_type_mapping['user']
                     self.company_rules = rules_type_mapping['company']
                     self.regex_rules = rules_type_mapping['regex']
         except Exception as e:
-            print("[moesif] Error when parsing rules response: ", e)
+            logger.warning("[moesif] Error when parsing rules response: ", e)
 
         return self.user_rules, self.company_rules, self.regex_rules

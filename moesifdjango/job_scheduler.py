@@ -1,5 +1,8 @@
 from datetime import datetime
 from moesifpythonrequest.app_config.app_config import AppConfig
+import logging
+
+logger = logging.getLogger(__name__)
 
 class JobScheduler:
 
@@ -14,16 +17,16 @@ class JobScheduler:
             scheduler.shutdown()
         except Exception as ex:
             if debug:
-                print("Error while closing the queue or scheduler shut down")
-                print(str(ex))
+                logger.info("Error while closing the queue or scheduler shut down")
+                logger.info(str(ex))
 
     def send_events(self, api_client, batch_events, debug):
         try:
             if debug:
-                print("Sending events to Moesif")
+                logger.info("Sending events to Moesif")
             batch_events_api_response = api_client.create_events_batch(batch_events)
             if debug:
-                print("Events sent successfully")
+                logger.info("Events sent successfully")
             # Fetch Config ETag from response header
             batch_events_response_config_etag = batch_events_api_response.get("X-Moesif-Config-ETag")
             batch_events_response_rule_etag = batch_events_api_response.get("X-Moesif-Rules-Tag", None)
@@ -31,8 +34,8 @@ class JobScheduler:
             return batch_events_response_config_etag, batch_events_response_rule_etag
         except Exception as ex:
             if debug:
-                print("Error sending event to Moesif")
-                print(str(ex))
+                logger.info("Error sending event to Moesif")
+                logger.info(str(ex))
             return None
 
     # Function to fetch application config
@@ -43,8 +46,8 @@ class JobScheduler:
                 config_etag, sampling_percentage, last_updated_time = self.app_config.parse_configuration(config, debug)
         except Exception as e:
             if debug:
-                print('Error while fetching the application configuration')
-                print(str(e))
+                logger.info('Error while fetching the application configuration')
+                logger.info(str(e))
         return config, config_etag, sampling_percentage, last_updated_time
 
 
@@ -65,14 +68,14 @@ class JobScheduler:
                 batch_send_time = datetime.utcnow()
                 delta = batch_send_time - req_time
                 if debug and delta.total_seconds() > 60:
-                    print("Warning: It took %s seconds to send events to Moesif. req.time=%s now=%s"%(delta.total_seconds(), req_time, batch_send_time))
+                    logger.info("Warning: It took %s seconds to send events to Moesif. req.time=%s now=%s"%(delta.total_seconds(), req_time, batch_send_time))
                 return batch_response_config_etag, batch_response_rules_etag, batch_send_time
             else:
                 # Set the last time event job ran but no message to read from the queue
                 return None, None, datetime.utcnow()
         except Exception as e:
             if debug:
-                print("No message to read from the queue")
-                print(str(e))
+                logger.info("No message to read from the queue")
+                logger.info(str(e))
             # Set the last time event job ran when exception occurred while sending event
             return None, None, datetime.utcnow()

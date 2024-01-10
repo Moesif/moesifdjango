@@ -55,11 +55,11 @@ class moesif_middleware:
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
-                    print('Start capturing outgoing requests')
+                    logger.info('Start capturing outgoing requests')
                 # Start capturing outgoing requests
                 StartCapture().start_capture_outgoing(settings.MOESIF_MIDDLEWARE)
             except:
-                print('Error while starting to capture the outgoing events')
+                logger.warning('Error while starting to capture the outgoing events')
         self.api_version = self.middleware_settings.get('API_VERSION')
         self.api_client = self.client.api
         self.response_catcher = HttpResponseCatcher()
@@ -95,14 +95,14 @@ class moesif_middleware:
                     self.config, self.DEBUG)
         except Exception as e:
             if self.DEBUG:
-                print('Error while parsing application configuration on initialization')
-                print(str(e))
+                logger.info('Error while parsing application configuration on initialization')
+                logger.info(str(e))
 
     # Function to listen to the send event job response
     def event_listener(self, event):
         if event.exception:
             if self.DEBUG:
-                print('Error reading response from the scheduled event job')
+                logger.info('Error reading response from the scheduled event job')
         else:
             if event.retval:
                 response_config_etag, response_rules_etag, self.last_event_job_run_time = event.retval
@@ -118,8 +118,8 @@ class moesif_middleware:
 
                         except Exception as ex:
                             if self.DEBUG:
-                                print('Error while updating the application configuration')
-                                print(str(ex))
+                                logger.info('Error while updating the application configuration')
+                                logger.info(str(ex))
 
                 if response_rules_etag:
                     if not self.rules_etag or self.rules_etag != response_rules_etag:
@@ -135,7 +135,7 @@ class moesif_middleware:
             if not self.scheduler.get_jobs():
                 self.scheduler.add_listener(self.event_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
                 self.scheduler.start()
-                print("Starting batch events job")
+                logger.info("Starting batch events job")
                 self.scheduler.add_job(
                     func=lambda: self.job_scheduler.batch_events(self.api_client, self.mo_events_queue, self.DEBUG,
                                                                  self.event_batch_size),
@@ -152,8 +152,8 @@ class moesif_middleware:
                 atexit.register(lambda: self.job_scheduler.exit_handler(self.scheduler, self.DEBUG))
         except Exception as ex:
             if self.DEBUG:
-                print("Error when scheduling the job")
-                print(str(ex))
+                logger.info("Error when scheduling the job")
+                logger.info(str(ex))
 
     def __call__(self, request):
         # Code to be executed for each request before
@@ -162,7 +162,7 @@ class moesif_middleware:
         # Request Time
         req_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
         if self.DEBUG:
-            print("event request time: ", req_time)
+            logger.info("event request time: ", req_time)
 
         # Initialize Transaction Id
         transaction_id = None
@@ -175,7 +175,7 @@ class moesif_middleware:
             request._mo_body = None
 
         if self.DEBUG:
-            print("raw body before getting response")
+            logger.info("raw body before getting response")
 
         response = self.get_response(request)
         # Code to be executed for each request/response after
@@ -184,7 +184,7 @@ class moesif_middleware:
         # Response Time
         rsp_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
         if self.DEBUG:
-            print("event response time: ", rsp_time)
+            logger.info("event response time: ", rsp_time)
 
         # Check if need to skip logging event
         skip_event_response = self.logger_helper.skip_event(request, response, self.middleware_settings, self.DEBUG)
@@ -285,12 +285,12 @@ class moesif_middleware:
                 self._create_scheduler_if_needed()
 
                 if self.DEBUG:
-                    print("Add Event to the queue: ", self.mo_events_queue.qsize())
+                    logger.info("Add Event to the queue: ", self.mo_events_queue.qsize())
                 self.mo_events_queue.put(event_model)
             except Exception as ex:
                 if self.DEBUG:
-                    print("Error while adding event to the queue")
-                    print(str(ex))
+                    logger.info("Error while adding event to the queue")
+                    logger.info(str(ex))
 
         return response
 
@@ -307,7 +307,7 @@ class moesif_middleware:
             # cleanup is not needed
             pass
         finally:
-            print("----- Event scheduler will start on next event.")
+            logger.info("----- Event scheduler will start on next event.")
             # Reset initialize it so that next time schedule job is called it gets created again.
             self.scheduler = None
             self.is_event_job_scheduled = False
@@ -333,8 +333,8 @@ class moesif_middleware:
             except Exception as ex:
                 self.is_event_job_scheduled = False
                 if self.DEBUG:
-                    print('Error while starting the event scheduler job in background')
-                    print(str(ex))
+                    logger.info('Error while starting the event scheduler job in background')
+                    logger.info(str(ex))
 
     def update_user(self, user_profile):
         self.user.update_user(user_profile, self.api_client, self.DEBUG)
