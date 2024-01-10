@@ -102,8 +102,7 @@ class MoesifMiddlewarePre19(object):
                                                                 self.last_updated_time, self.api_client, self.DEBUG)
                     except Exception as ex:
                         if self.DEBUG:
-                            logger.info('Error while updating the application configuration')
-                            logger.info(str(ex))
+                            logger.info('Error while updating the application configuration', ex)
 
     # Function to schedule send event job in async
     def schedule_event_background_job(self):
@@ -129,8 +128,7 @@ class MoesifMiddlewarePre19(object):
                 atexit.register(lambda: self.job_scheduler.exit_handler(self.scheduler, self.DEBUG))
         except Exception as ex:
             if self.DEBUG:
-                logger.info("Error when scheduling the job")
-                logger.info(str(ex))
+                logger.info("Error when scheduling the job", ex)
 
     @classmethod
     def process_request(cls, request):
@@ -237,8 +235,7 @@ class MoesifMiddlewarePre19(object):
                 self.mo_events_queue.put(event_model)
             except Exception as ex:
                 if self.DEBUG:
-                    logger.info("Error while adding event to the queue")
-                    logger.info(str(ex))
+                    logger.info("Error while adding event to the queue", ex)
 
         return response
 
@@ -283,8 +280,7 @@ class MoesifMiddlewarePre19(object):
             except Exception as ex:
                 self.is_event_job_scheduled = False
                 if self.DEBUG:
-                    logger.info('Error while starting the event scheduler job in background')
-                    logger.info(str(ex))
+                    logger.info('Error while starting the event scheduler job in background', ex)
 
     def update_user(self, user_profile):
         self.user.update_user(user_profile, self.api_client, self.DEBUG)

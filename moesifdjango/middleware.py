@@ -95,8 +95,7 @@ class moesif_middleware:
                     self.config, self.DEBUG)
         except Exception as e:
             if self.DEBUG:
-                logger.info('Error while parsing application configuration on initialization')
-                logger.info(str(e))
+                logger.info('Error while parsing application configuration on initialization', e)
 
     # Function to listen to the send event job response
     def event_listener(self, event):
@@ -118,8 +117,7 @@ class moesif_middleware:
 
                         except Exception as ex:
                             if self.DEBUG:
-                                logger.info('Error while updating the application configuration')
-                                logger.info(str(ex))
+                                logger.info('Error while updating the application configuration', ex)
 
                 if response_rules_etag:
                     if not self.rules_etag or self.rules_etag != response_rules_etag:
@@ -152,8 +150,7 @@ class moesif_middleware:
                 atexit.register(lambda: self.job_scheduler.exit_handler(self.scheduler, self.DEBUG))
         except Exception as ex:
             if self.DEBUG:
-                logger.info("Error when scheduling the job")
-                logger.info(str(ex))
+                logger.info("Error when scheduling the job", ex)
 
     def __call__(self, request):
         # Code to be executed for each request before
@@ -289,8 +286,7 @@ class moesif_middleware:
                 self.mo_events_queue.put(event_model)
             except Exception as ex:
                 if self.DEBUG:
-                    logger.info("Error while adding event to the queue")
-                    logger.info(str(ex))
+                    logger.info("Error while adding event to the queue", ex)
 
         return response
 
@@ -333,8 +329,7 @@ class moesif_middleware:
             except Exception as ex:
                 self.is_event_job_scheduled = False
                 if self.DEBUG:
-                    logger.info('Error while starting the event scheduler job in background')
-                    logger.info(str(ex))
+                    logger.info('Error while starting the event scheduler job in background', ex)
 
     def update_user(self, user_profile):
         self.user.update_user(user_profile, self.api_client, self.DEBUG)

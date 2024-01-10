@@ -17,8 +17,7 @@ class JobScheduler:
             scheduler.shutdown()
         except Exception as ex:
             if debug:
-                logger.info("Error while closing the queue or scheduler shut down")
-                logger.info(str(ex))
+                logger.info("Error while closing the queue or scheduler shut down", ex)
 
     def send_events(self, api_client, batch_events, debug):
         try:
@@ -34,8 +33,7 @@ class JobScheduler:
             return batch_events_response_config_etag, batch_events_response_rule_etag
         except Exception as ex:
             if debug:
-                logger.info("Error sending event to Moesif")
-                logger.info(str(ex))
+                logger.info("Error sending event to Moesif", ex)
             return None
 
     # Function to fetch application config
@@ -46,8 +44,7 @@ class JobScheduler:
                 config_etag, sampling_percentage, last_updated_time = self.app_config.parse_configuration(config, debug)
         except Exception as e:
             if debug:
-                logger.info('Error while fetching the application configuration')
-                logger.info(str(e))
+                logger.info('Error while fetching the application configuration', e)
         return config, config_etag, sampling_percentage, last_updated_time
 
 
@@ -75,7 +72,6 @@ class JobScheduler:
                 return None, None, datetime.utcnow()
         except Exception as e:
             if debug:
-                logger.info("No message to read from the queue")
-                logger.info(str(e))
+                logger.info("No message to read from the queue", e)
             # Set the last time event job ran when exception occurred while sending event
             return None, None, datetime.utcnow()

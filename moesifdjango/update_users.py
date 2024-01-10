@@ -25,8 +25,7 @@ class User:
                         if 401 <= inst.response_code <= 403:
                             logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                         if DEBUG:
-                            logger.info("Error while updating user, with status code:")
-                            logger.info(inst.response_code)
+                            logger.info("Error while updating user, with status code:", inst.response_code)
                 else:
                     logger.info('To update an user, an user_id field is required')
 
@@ -40,8 +39,7 @@ class User:
                         if 401 <= inst.response_code <= 403:
                             logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                         if DEBUG:
-                            logger.info("Error while updating user, with status code:")
-                            logger.info(inst.response_code)
+                            logger.info("Error while updating user, with status code:", inst.response_code)
                 else:
                     logger.info('To update an user, an user_id field is required')
             else:
@@ -56,8 +54,7 @@ class User:
                             if 401 <= inst.response_code <= 403:
                                 logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                             if DEBUG:
-                                logger.info("Error while updating user, with status code:")
-                                logger.info(inst.response_code)
+                                logger.info("Error while updating user, with status code:", inst.response_code)
                     else:
                         logger.info('To update an user, an user_id field is required')
                 except:
@@ -79,8 +76,7 @@ class User:
                         if 401 <= inst.response_code <= 403:
                             logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                         if DEBUG:
-                            logger.info("Error while updating users, with status code:")
-                            logger.info(inst.response_code)
+                            logger.info("Error while updating users, with status code:", inst.response_code)
                 else:
                     logger.info('To update users, an user_id field is required')
 
@@ -94,8 +90,7 @@ class User:
                         if 401 <= inst.response_code <= 403:
                             logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                         if DEBUG:
-                            logger.info("Error while updating users, with status code:")
-                            logger.info(inst.response_code)
+                            logger.info("Error while updating users, with status code:", inst.response_code)
                 else:
                     logger.info('To update users, an user_id field is required')
             else:
@@ -112,8 +107,7 @@ class User:
                             if 401 <= inst.response_code <= 403:
                                 logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                             if DEBUG:
-                                logger.info("Error while updating users, with status code:")
-                                logger.info(inst.response_code)
+                                logger.info("Error while updating users, with status code:", inst.response_code)
                     else:
                         logger.info('To update users, an user_id field is required')
                 except:
