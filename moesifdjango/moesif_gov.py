@@ -27,15 +27,16 @@ class MoesifGovRuleHelper:
         """
         entity_rules = {'user_rules': {}, 'company_rules': {}}
         try:
-            raw_body = json.loads(config.raw_body)
+            if config:
+                raw_body = json.loads(config.raw_body)
 
-            entity_rules = {
-                'user_rules': raw_body.get('user_rules', {}),
-                'company_rules': raw_body.get('company_rules', {}),
-            }
-            if debug:
-                logger.info(
-                    f"[moesif] config got {len(entity_rules['user_rules'])} cohort users and {len(entity_rules['company_rules'])} cohort companies")
+                entity_rules = {
+                    'user_rules': raw_body.get('user_rules', {}),
+                    'company_rules': raw_body.get('company_rules', {}),
+                }
+                if debug:
+                    logger.info(
+                        f"[moesif] config got {len(entity_rules['user_rules'])} cohort users and {len(entity_rules['company_rules'])} cohort companies")
 
         except Exception as e:
             logger.warning("[moesif] Error when fetching raw_body from config, ", e)
