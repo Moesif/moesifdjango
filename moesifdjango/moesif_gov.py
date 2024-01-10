@@ -154,7 +154,7 @@ class MoesifGovRuleHelper:
                         if not ready_for_body_request:
                             continue
                 except Exception as e:
-                    logger.info(f"[moesif] Error when matching path starts with request\\.body\\: {str(e)}")
+                    logger.info(f"[moesif] Error when matching path starts with request.body: {str(e)}")
 
                 # Check if the path exists in the request config mapping
                 if path in request_mapping_for_regex_config:
