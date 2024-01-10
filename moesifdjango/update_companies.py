@@ -26,8 +26,7 @@ class Company:
                         if 401 <= inst.response_code <= 403:
                             logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                         if DEBUG:
-                            logger.info("Error while updating company, with status code:")
-                            logger.info(inst.response_code)
+                            logger.info(f"Error while updating company, with status code: {inst.response_code}")
                 else:
                     logger.info('To update a company, a company_id field is required')
 
@@ -41,8 +40,7 @@ class Company:
                         if 401 <= inst.response_code <= 403:
                             logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                         if DEBUG:
-                            logger.info("Error while updating company, with status code:")
-                            logger.info(inst.response_code)
+                            logger.info(f"Error while updating company, with status code: {inst.response_code}")
                 else:
                     logger.info('To update a company, a company_id field is required')
             else:
@@ -57,8 +55,7 @@ class Company:
                             if 401 <= inst.response_code <= 403:
                                 logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                             if DEBUG:
-                                logger.info("Error while updating company, with status code:")
-                                logger.info(inst.response_code)
+                                logger.info(f"Error while updating company, with status code: {inst.response_code}")
                     else:
                         logger.info('To update a company, a company_id field is required')
                 except:
@@ -80,8 +77,7 @@ class Company:
                         if 401 <= inst.response_code <= 403:
                             logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                         if DEBUG:
-                            logger.info("Error while updating companies, with status code:")
-                            logger.info(inst.response_code)
+                            logger.info(f"Error while updating companies, with status code: {inst.response_code}")
                 else:
                     logger.info('To update companies, an company_id field is required')
 
@@ -95,8 +91,7 @@ class Company:
                         if 401 <= inst.response_code <= 403:
                             logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                         if DEBUG:
-                            logger.info("Error while updating companues, with status code:")
-                            logger.info(inst.response_code)
+                            logger.info(f"Error while updating companues, with status code: {inst.response_code}")
                 else:
                     logger.info('To update companies, a company_id field is required')
             else:
@@ -113,8 +108,7 @@ class Company:
                             if 401 <= inst.response_code <= 403:
                                 logger.error("Unauthorized access sending event to Moesif. Please check your Appplication Id.")
                             if DEBUG:
-                                logger.info("Error while updating companies, with status code:")
-                                logger.info(inst.response_code)
+                                logger.info(f"Error while updating companies, with status code: {inst.response_code}")
                     else:
                         logger.info('To update companies, an company_id field is required')
                 except:
