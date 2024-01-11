@@ -7,6 +7,9 @@ import base64
 import re
 import copy
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LoggerHelper:
@@ -42,17 +45,16 @@ class LoggerHelper:
             req_headers = self.mask_helper.mask_headers(req_headers, middleware_settings.get('REQUEST_HEADER_MASKS'))
         except Exception as inst:
             if debug:
-                print("error encountered while copying request header")
-                print(inst)
+                logger.info(f"error encountered while copying request header: {str(inst)}")
             req_headers = {}
 
         if debug:
-            print("about to print what is in meta %d " % len(request.META))
+            logger.info("about to print what is in meta %d " % len(request.META))
             for x in request.META:
-                print(x, ':', request.META[x])
-            print("about to print headers %d " % len(req_headers))
+                logger.info(f'{x}: {request.META[x]}')
+            logger.info("about to print headers %d " % len(req_headers))
             for x in req_headers:
-                print(x, ':', req_headers[x])
+                logger.info(f'{x}: {req_headers[x]}')
 
         req_headers = {k: self.flatten_to_string(v) for k, v in req_headers.items()}
         return req_headers
@@ -152,8 +154,7 @@ class LoggerHelper:
                 return str(json_decode[field])
         except Exception as e:
             if debug:
-                print("Error while parsing authorization header to fetch user id.")
-                print(e)
+                logger.info(f"Error while parsing authorization header to fetch user id: {str(e)}")
         return None
 
     def get_user_id(self, middleware_settings, request, response, request_headers, debug):
@@ -224,8 +225,7 @@ class LoggerHelper:
                                 user_id = self.parse_authorization_header(token, field, debug)
         except Exception as e:
             if debug:
-                print("can not execute identify_user function, please check moesif settings.")
-                print(e)
+                logger.info(f"can not execute identify_user function, please check moesif settings: {str(e)}")
         return user_id
 
     @classmethod
@@ -237,7 +237,7 @@ class LoggerHelper:
                 company_id = identify_company(request, response)
         except:
             if debug:
-                print("can not execute identify_company function, please check moesif settings.")
+                logger.info("can not execute identify_company function, please check moesif settings.")
         return company_id
 
     @classmethod
@@ -249,7 +249,7 @@ class LoggerHelper:
                 metadata = get_metadata(request, response)
         except:
             if debug:
-                print("can not execute get_metadata function, please check moesif settings.")
+                logger.info("can not execute get_metadata function, please check moesif settings.")
         return metadata
 
     @classmethod
@@ -264,7 +264,7 @@ class LoggerHelper:
                     session_token = get_session_token(request, response)
         except:
             if debug:
-                print("Can not execute get_session_token function. Please check moesif settings.")
+                logger.info("Can not execute get_session_token function. Please check moesif settings.")
         return session_token
 
     @classmethod
@@ -276,7 +276,7 @@ class LoggerHelper:
                     return response
         except:
             if debug:
-                print("Having difficulty executing skip_event function. Please check moesif settings.")
+                logger.info("Having difficulty executing skip_event function. Please check moesif settings.")
             return None
 
     @classmethod
@@ -287,7 +287,7 @@ class LoggerHelper:
                 event_model = mask_event_model(event_model)
         except:
             if debug:
-                print("Can not execute mask_event_model function. Please check moesif settings.")
+                logger.info("Can not execute mask_event_model function. Please check moesif settings.")
         return event_model
 
     # Function to get configuration uri
