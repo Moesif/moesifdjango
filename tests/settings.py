@@ -90,7 +90,7 @@ MIDDLEWARE = [
 ]
 
 MOESIF_MIDDLEWARE = {
-    'APPLICATION_ID': 'Your Moesif Application Id',
+    'APPLICATION_ID': 'eyJhcHAiOiI1NjU6NDYzIiwidmVyIjoiMi4xIiwib3JnIjoiNjI4OjM2MCIsImlhdCI6MTcwNjc0NTYwMH0.KTkq3jzf7vTTDeszWF39n8EiDNM5-DX0ld1ASvinoi4',
     'REQUEST_HEADER_MASKS': ['header1', 'header2'],
     'REQUEST_BODY_MASKS': ['body1', 'body2'],
     'RESPONSE_HEADER_MASKS': ['header1', 'header2'],

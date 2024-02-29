@@ -386,6 +386,70 @@ companyB = {
 update_companies = middleware.update_companies_batch([userA, userB])
 ```
 
+## Update Subscription
+
+### Update A Single Subscription
+Create or update a subscription in Moesif. The metadata field can store any subscription-related information you wish to keep. Only the `subscription_id`, `company_id`, and `status` fields are required. This method is a convenient helper that calls the Moesif API lib. For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-a-subscription).
+
+```python
+middleware = MoesifMiddleware(None)
+
+# Only subscription_id is required.
+# metadata can be any custom object
+subscription = {
+  'subscription_id': 'sub_67890',
+  'company_id': '3456',
+  'status': 'active'
+  'metadata': {
+    'plan_name': 'Pro',
+    'signup_date': '2020-09-09',
+    'expiration_date': '2021-09-09',
+    'payment_method': 'credit_card',
+    'mrr': 12000,
+    'currency': 'USD'
+  }
+}
+
+update_subscription = middleware.update_subscription(subscription)
+```
+
+### Update Subscriptions in Batch
+Similar to `update_subscription`, but used to update a list of subscriptions in one batch. Only the `subscription_id`, `company_id`, and `status` fields are required. This method is a convenient helper that calls the Moesif API lib. For details, visit the [Python API Reference](https://www.moesif.com/docs/api?python#update-subscriptions-in-batch).
+
+```python
+middleware = MoesifMiddleware(None)
+
+subscriptionA = {
+  'subscription_id': 'sub_67890',
+  'company_id': '3456',
+  'status': 'active'
+  'metadata': {
+    'plan_name': 'Pro',
+    'signup_date': '2020-09-09',
+    'expiration_date': '2021-09-09',
+    'payment_method': 'credit_card',
+    'mrr': 12000,
+    'currency': 'USD'
+  }
+}
+
+subscriptionB = {
+  'subscription_id': 'sub_54321',
+  'company_id': '6789',
+  'status': 'active'
+  'metadata': {
+    'plan_name': 'Enterprise',
+    'signup_date': '2020-10-01',
+    'expiration_date': '2021-10-01',
+    'payment_method': 'paypal',
+    'mrr': 24000,
+    'currency': 'USD'
+  }
+}
+
+update_subscriptions = middleware.update_subscriptions_batch([subscriptionA, subscriptionB])
+```
+
 ## Tested versions
 
 Moesif has validated moesifdjango against the following combinations.  

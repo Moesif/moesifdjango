@@ -80,6 +80,29 @@ class UpdateCompaniesBatchTest(SimpleTestCase):
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }])
 
+class UpdateSubscriptionTest(SimpleTestCase):
+    
+    def testUpdateSubscription(self):
+        middleware = moesif_middleware(None)
+        middleware.update_subscription({
+        'subscription_id': '12345',
+        'company_id' : '67890',
+        'status': 'active'
+        })
+        
+class UpdateSubscriptionsBatchTest(SimpleTestCase):
+        
+    def testUpdateSubscriptionsBatch(self):
+        middleware = moesif_middleware(None)
+        middleware.update_subscriptions_batch([{
+            'subscription_id': '12345',
+            'company_id' : '67890',
+            'status': 'active'
+        }, {
+            'subscription_id': '1234',
+            'company_id' : '6789',
+            'status': 'active'
+        }])
 
 class MaskTests(SimpleTestCase):
     def setUp(self):
