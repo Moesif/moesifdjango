@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 from moesifpythonrequest.app_config.app_config import AppConfig
 from .update_companies import Company
 from .update_users import User
+from .update_subscriptions import Subscription
 
 from .client_ip import ClientIp
 from .logger_helper import LoggerHelper
@@ -71,6 +72,7 @@ class moesif_middleware:
         self.mask_helper = MaskData()
         self.user = User()
         self.company = Company()
+        self.subscription = Subscription()
         self.parse_body = ParseBody()
 
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
@@ -342,3 +344,9 @@ class moesif_middleware:
 
     def update_companies_batch(self, companies_profiles):
         self.company.update_companies_batch(companies_profiles, self.api_client, self.DEBUG)
+
+    def update_subscription(self, subscription):
+        self.subscription.update_subscription(subscription, self.api_client, self.DEBUG)
+    
+    def update_subscriptions_batch(self, subscriptions):
+        self.subscription.update_subscriptions_batch(subscriptions, self.api_client, self.DEBUG)

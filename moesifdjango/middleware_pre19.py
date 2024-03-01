@@ -25,6 +25,7 @@ from moesifpythonrequest.app_config.app_config import AppConfig
 from .parse_body import ParseBody
 from .update_companies import Company
 from .update_users import User
+from .update_subscriptions import Subscription
 from .client_ip import ClientIp
 from .logger_helper import LoggerHelper
 from .event_mapper import EventMapper
@@ -66,6 +67,7 @@ class MoesifMiddlewarePre19(object):
         self.mask_helper = MaskData()
         self.user = User()
         self.company = Company()
+        self.subscription = Subscription()
         self.config = self.app_config.get_config(self.api_client, self.DEBUG)
         self.sampling_percentage = 100
         self.config_etag = None
@@ -293,3 +295,9 @@ class MoesifMiddlewarePre19(object):
 
     def update_companies_batch(self, companies_profiles):
         self.company.update_companies_batch(companies_profiles, self.api_client, self.DEBUG)
+
+    def update_subscription(self, subscription):
+        self.subscription.update_subscription(subscription, self.api_client, self.DEBUG)
+    
+    def update_subscriptions_batch(self, subscriptions):
+        self.subscription.update_subscriptions_batch(subscriptions, self.api_client, self.DEBUG)

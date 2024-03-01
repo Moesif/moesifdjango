@@ -78,6 +78,30 @@ class UpdateCompaniesBatchTest(SimpleTestCase):
             'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
         }])
 
+class UpdateSubscriptionTest(SimpleTestCase):
+
+    def testUpdateSubscription(self):
+        MoesifMiddlewarePre19().update_subscription({
+        'subscription_id': '12345',
+        'company_id' : '67890',
+        'status': 'active',
+        'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+        })
+
+class UpdateSubscriptionsBatchTest(SimpleTestCase):
+    
+    def testUpdateSubscriptionsBatch(self):
+        MoesifMiddlewarePre19().update_subscriptions_batch([{
+            'subscription_id': '12345',
+            'company_id' : '67890',
+            'status': 'active',
+            'metadata': {'email': 'abc@email.com', 'name': 'abcdefg', 'image': '123'}
+        }, {
+            'subscription_id': '1234',
+            'company_id' : '6789',
+            'status': 'active',
+            'metadata': {'email': 'def@email.com', 'name': 'abcdefg', 'image': '123'}
+        }])
 
 class MaskTests(SimpleTestCase):
     def setUp(self):
