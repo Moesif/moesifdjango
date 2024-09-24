@@ -160,7 +160,7 @@ Otherwise, you can add `RUN apt-get install tzdata` in the Dockerfile.
 ```
 
 ## Configuration options
-The following sections describe the available configuration options for this middleware. You have to set these options in a Python dictionary `MOESIF_MIDDLEWARE`. See the [example Django application](https://github.com/Moesif/moesifdjangoexample/blob/af79999760bcbab4421b05c6525c5b10d274b2f8/mysite/mysite/settings.py#L163) for better understanding.
+The following sections describe the available configuration options for this middleware. You have to set these options in a Python dictionary `MOESIF_MIDDLEWARE`. See the [examples](#examples) for better understanding.
 
 #### `APPLICATION_ID` (Required)
 <table>
