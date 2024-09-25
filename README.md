@@ -390,7 +390,7 @@ If you want more control over which fields the middleware includes or not, see t
     <code>(EventModel)</code>
    </td>
    <td>
-    <code>EventModel_</code>
+    <code>EventModel</code>
    </td>
   </tr>
 </table>
