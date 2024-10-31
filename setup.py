@@ -83,7 +83,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['requests', 'jsonpickle', 'python-dateutil', 'isodatetimehandler', 'moesifapi>=1.5.3',
-                      'moesifpythonrequest>=0.3.4', 'apscheduler', 'nose'],
+                      'moesifpythonrequest>=0.3.4', 'apscheduler', 'nose', 'ipaddress;python_version<"3.3"'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -92,7 +92,6 @@ setup(
     extras_require={
         'dev': [],
         'test': ['nose'],
-        ':python_version<"3.3"': ['ipaddress'],
     },
 
 )
