@@ -13,10 +13,10 @@ class ClientIp:
     def is_ip(cls, value):
         # https://docs.python.org/3/library/ipaddress.html#ipaddress.ip_address
         try:
-            ip = ipaddress.ip_address(value);
-            return True;
+            ip = ipaddress.ip_address(value)
+            return True
         except ValueError:
-            return False;
+            return False
 
     def get_client_ip_from_x_forwarded_for(self, value):
         try:
