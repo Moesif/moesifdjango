@@ -52,7 +52,7 @@ class moesif_middleware:
         self.client = MoesifAPIClient(self.middleware_settings.get('APPLICATION_ID'))
         self.logger_helper = LoggerHelper()
         Configuration.BASE_URI = self.logger_helper.get_configuration_uri(self.middleware_settings, 'BASE_URI', 'LOCAL_MOESIF_BASEURL')
-        Configuration.version = 'moesifdjango-python/2.3.10'
+        Configuration.version = 'moesifdjango-python/2.3.11'
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
@@ -347,6 +347,6 @@ class moesif_middleware:
 
     def update_subscription(self, subscription):
         self.subscription.update_subscription(subscription, self.api_client, self.DEBUG)
-    
+
     def update_subscriptions_batch(self, subscriptions):
         self.subscription.update_subscriptions_batch(subscriptions, self.api_client, self.DEBUG)

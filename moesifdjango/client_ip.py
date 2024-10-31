@@ -1,5 +1,6 @@
 import re
 import logging
+import ipaddress
 
 logger = logging.getLogger(__name__)
 
@@ -10,10 +11,12 @@ class ClientIp:
 
     @classmethod
     def is_ip(cls, value):
-        if not value is None:
-            ipv4 = r"^(?:(?:\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}(?:\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])$"
-            ipv6 = r"^((?=.*::)(?!.*::.+::)(::)?([\dA-F]{1,4}:(:|\b)|){5}|([\dA-F]{1,4}:){6})((([\dA-F]{1,4}((?!\3)::|:\b|$))|(?!\2\3)){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})$/i"
-            return re.match(ipv4, value) or re.match(ipv6, value)
+        # https://docs.python.org/3/library/ipaddress.html#ipaddress.ip_address
+        try:
+            ip = ipaddress.ip_address(value)
+            return True
+        except ValueError:
+            return False
 
     def get_client_ip_from_x_forwarded_for(self, value):
         try:
