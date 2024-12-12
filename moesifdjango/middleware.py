@@ -167,9 +167,10 @@ class moesif_middleware:
         transaction_id = None
 
         try:
-            request._mo_body = request.body
-            request._stream = BytesIO(request.body)
-            request._read_started = False
+            if self.LOG_BODY:
+                request._mo_body = request.body
+                request._stream = BytesIO(request.body)
+                request._read_started = False
         except:
             request._mo_body = None
 
