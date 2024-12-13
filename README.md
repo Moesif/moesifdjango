@@ -1093,14 +1093,11 @@ Moesif has validated this middleware against the following combinations of Pytho
 
 ## Troubleshoot
 
-On MacOS, with `gunicorn`, it is possible to encounter this error: "in progress in another thread when fork() was called". There are two possible solutions: add `--preload` option when launching `gunicorn` like below:
+On MacOS, with `gunicorn`, it is possible to encounter this error: "in progress in another thread when fork() was called". Solution is to add `--preload` option when launching `gunicorn` like below.
 
 ```bash
 gunicorn myapp.wsgi:application --bind 127.0.0.1:8000 --preload
 ```
-
-Another solution is,`export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` per this thread: https://github.com/ansible/ansible/issues/32499.
-
 
 ## Explore Other Integrations
 
