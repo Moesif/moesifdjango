@@ -7,7 +7,7 @@ by [Moesif](https://moesif.com), the [API analytics](https://www.moesif.com/feat
 [![Software License][ico-license]][link-license]
 [![Source Code][ico-source]][link-source]
 
-Moesif middleware for Django automatically logs incoming and outgoing API calls 
+Moesif middleware for Django automatically logs incoming and outgoing API calls
 and sends them to [Moesif](https://www.moesif.com) for API analytics and monitoring.
 
 This SDK uses the Requests library and works for Python versions 2.7 up to 3.10.4.
@@ -87,7 +87,7 @@ MIDDLEWARE = [
 ]
 ```
 
-Then add a dictionary `MOESIF_MIDDLEWARE` to your Django settings file: 
+Then add a dictionary `MOESIF_MIDDLEWARE` to your Django settings file:
 
 ```
 MOESIF_MIDDLEWARE = {
@@ -108,7 +108,7 @@ MIDDLEWARE_CLASSES = [
 ]
 ```
 
-Then add a dictionary `MOESIF_MIDDLEWARE` to your Django settings file: 
+Then add a dictionary `MOESIF_MIDDLEWARE` to your Django settings file:
 ```
 
 MOESIF_MIDDLEWARE = {
@@ -117,7 +117,7 @@ MOESIF_MIDDLEWARE = {
 }
 ```
 
-The dictionary contains the [configuration options](#configuration-options) for 
+The dictionary contains the [configuration options](#configuration-options) for
 the middleware, including your [Moesif Application ID](#get-your-moesif-application-id) that you must specify.
 
 ### Optional: Capturing Outgoing API Calls
@@ -241,10 +241,10 @@ This function takes Requests [`Request` and `Response` objects](https://requests
 
 Optional, but highly recommended.
 
-This function takes a request and a response and returns a string that represents 
+This function takes a request and a response and returns a string that represents
 the user ID used by your system.
 
-Moesif tries to identify users automatically and fetch the username from [`django.http.HttpRequest.user`](https://docs.djangoproject.com/en/1.8/ref/request-response/#django.http.HttpRequest.user). However, if implementation differs, we highly recommend that you accurately provide a 
+Moesif tries to identify users automatically and fetch the username from [`django.http.HttpRequest.user`](https://docs.djangoproject.com/en/1.8/ref/request-response/#django.http.HttpRequest.user). However, if implementation differs, we highly recommend that you accurately provide a
 user ID using this function.
 
 #### `IDENTIFY_COMPANY`
@@ -303,9 +303,9 @@ A function that takes a request and a response and returns a string that represe
   </tr>
 </table>
 
-Optional. 
+Optional.
 
-A function that takes a request and a response, and returns a string that represents the session token for this event. 
+A function that takes a request and a response, and returns a string that represents the session token for this event.
 
 Similar to [user IDs](#identify_user), Moesif tries to get the session token automatically. However, if you setup differs from the standard, this function can help tying up events together and help you replay the events.
 
@@ -365,7 +365,7 @@ Optional.
 
 Whether to log request and response body to Moesif.
 
-Set to `False` to remove the HTTP body before sending to Moesif. 
+Set to `False` to remove the HTTP body before sending to Moesif.
 
 If you want more control over which fields the middleware includes or not, see the next option `MASK_EVENT_MODEL`.
 
@@ -397,9 +397,9 @@ If you want more control over which fields the middleware includes or not, see t
 
 Optional.
 
-A function that takes the final Moesif event model and returns an `EventModel` object with desired data removed. 
+A function that takes the final Moesif event model and returns an `EventModel` object with desired data removed.
 
-Use this if you prefer to write your own mask function than uses the string based filter options: 
+Use this if you prefer to write your own mask function than uses the string based filter options:
 
 - `REQUEST_BODY_MASKS`
 - `REQUEST_HEADER_MASKS`
@@ -454,7 +454,7 @@ Specifies the maximum batch size when sending to Moesif.
 
 Optional.
 
-The maximum number of events to hold in queue before sending to Moesif. 
+The maximum number of events to hold in queue before sending to Moesif.
 
 In case of network issues, the middleware may fail to connect or send event to Moesif. In those cases, the middleware skips adding new to event to queue to prevent memory overflow.
 
@@ -465,7 +465,7 @@ In case of network issues, the middleware may fail to connect or send event to M
     Data type
    </th>
    <th scope="col">
-    Default 
+    Default
    </th>
   </tr>
   <tr>
@@ -489,7 +489,7 @@ A request header field name used to identify the User in Moesif. It also support
     Data type
    </th>
    <th scope="col">
-    Default 
+    Default
    </th>
   </tr>
   <tr>
@@ -524,7 +524,7 @@ Optional.
 
 A local proxy hostname when sending traffic through secure proxy. Remember to set this field when using secure proxy. For more information, see [Secure Proxy documentation.](https://www.moesif.com/docs/platform/secure-proxy/#2-configure-moesif-sdk).
 
-### Options For Outgoing API Calls 
+### Options For Outgoing API Calls
 
 The following options apply to outgoing API calls. These are calls you initiate using the Python [Requests](http://docs.python-requests.org/en/master/) library to third parties like Stripe or to your own services.
 
@@ -539,7 +539,7 @@ If you are not using Django, you can import [`moesifpythonrequest`](https://gith
     Data type
    </th>
    <th scope="col">
-    Default 
+    Default
    </th>
   </tr>
   <tr>
@@ -584,7 +584,7 @@ Optional.
 
 A function that enables you to return custom metadata associated with the logged API calls.
 
-Takes in the [Requests](http://docs.python-requests.org/en/master/api/) request and response objects as arguments. 
+Takes in the [Requests](http://docs.python-requests.org/en/master/api/) request and response objects as arguments.
 
 We recommend that you implement a function that
 returns a dictionary containing your custom metadata. The dictionary must be a valid one that can be encoded into JSON. For example, you may want to save a virtual machine instance ID, a trace ID, or a resource ID with the request.
@@ -648,9 +648,9 @@ and returns `True` if you want to skip this particular event.
 
 Optional, but highly recommended.
 
-A function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response objects, and returns a string that represents the user ID used by your system. 
+A function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response objects, and returns a string that represents the user ID used by your system.
 
-While Moesif tries to identify users automatically, different frameworks and your implementation might vary. So we highly recommend that you accurately provide a 
+While Moesif tries to identify users automatically, different frameworks and your implementation might vary. So we highly recommend that you accurately provide a
 user ID using this function.
 
 ##### `IDENTIFY_COMPANY_OUTGOING`
@@ -711,7 +711,7 @@ A function that takes [Requests](http://docs.python-requests.org/en/master/api/)
 
 Optional.
 
-A function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response objects, and returns a string that corresponds to the session token for this event. 
+A function that takes [Requests](http://docs.python-requests.org/en/master/api/) request and response objects, and returns a string that corresponds to the session token for this event.
 
 Similar to [user IDs](#identify_user_outgoing), Moesif tries to get the session token automatically. However, if you setup differs from the standard, this function can help tying up events together and help you replay the events.
 
@@ -827,7 +827,7 @@ user = {
   'company_id': '67890', # If set, associate user with a company object
   'campaign': {
     'utm_source': 'google',
-    'utm_medium': 'cpc', 
+    'utm_medium': 'cpc',
     'utm_campaign': 'adwords',
     'utm_term': 'api+tooling',
     'utm_content': 'landing'
@@ -908,10 +908,10 @@ middleware = MoesifMiddleware(None)
 # metadata can be any custom object
 company = {
   'company_id': '67890',
-  'company_domain': 'acmeinc.com', # If domain is set, Moesif will enrich your profiles with publicly available info 
+  'company_domain': 'acmeinc.com', # If domain is set, Moesif will enrich your profiles with publicly available info
   'campaign': {
     'utm_source': 'google',
-    'utm_medium': 'cpc', 
+    'utm_medium': 'cpc',
     'utm_campaign': 'adwords',
     'utm_term': 'api+tooling',
     'utm_content': 'landing'
@@ -943,7 +943,7 @@ middleware = MoesifMiddleware(None)
 
 companyA = {
   'company_id': '67890',
-  'company_domain': 'acmeinc.com', # If domain is set, Moesif will enrich your profiles with publicly available info 
+  'company_domain': 'acmeinc.com', # If domain is set, Moesif will enrich your profiles with publicly available info
   'metadata': {
     'org_name': 'Acme, Inc',
     'plan_name': 'Free',
@@ -958,7 +958,7 @@ companyA = {
 
 companyB = {
   'company_id': '09876',
-  'company_domain': 'contoso.com', # If domain is set, Moesif will enrich your profiles with publicly available info 
+  'company_domain': 'contoso.com', # If domain is set, Moesif will enrich your profiles with publicly available info
   'metadata': {
     'org_name': 'Contoso, Inc',
     'plan_name': 'Free',
@@ -1005,13 +1005,13 @@ subscription = {
 update_subscription = middleware.update_subscription(subscription)
 ```
 
-The `metadata` field can store any subscription-related information. Moesif only requires the the following fields: 
+The `metadata` field can store any subscription-related information. Moesif only requires the the following fields:
 
 - `subscription_id`
 - `company_id`
-- `status` 
+- `status`
 
-This method is a convenient helper that calls the Moesif API library. 
+This method is a convenient helper that calls the Moesif API library.
 
 For more information, see [Moesif Python API reference](https://www.moesif.com/docs/api?python#update-a-subscription).
 
@@ -1052,13 +1052,13 @@ subscriptionB = {
 update_subscriptions = middleware.update_subscriptions_batch([subscriptionA, subscriptionB])
 ```
 
-The `metadata` field can store any subscription-related information. Moesif only requires the the following fields: 
+The `metadata` field can store any subscription-related information. Moesif only requires the the following fields:
 
 - `subscription_id`
 - `company_id`
-- `status` 
+- `status`
 
-This method is a convenient helper that calls the Moesif API library.  
+This method is a convenient helper that calls the Moesif API library.
 
 For more information, see [Moesif Python API reference](https://www.moesif.com/docs/api?python#update-subscriptions-in-batch).
 
@@ -1066,18 +1066,18 @@ For more information, see [Moesif Python API reference](https://www.moesif.com/d
 
 Moesif has validated this middleware against the following combinations of Python and Django versions:
 
-| Python        | Django     | 
-| ------------  | -------    | 
-| Python 2.7    | 1.11.22    | 
-| Python 2.7    | 1.11.22    | 
-| Python 2.7    | 1.9        | 
-| Python 3.4.5  | 1.11.22    | 
-| Python 3.4.5  | 1.11.22    | 
-| Python 3.4.5  | 1.9        | 
-| Python 3.6.4  | 1.11.22    | 
-| Python 3.6.4  | 1.11.22    | 
-| Python 3.6.4  | 1.9        | 
-| Python 3.10.4 | 3.2.13 LTS | 
+| Python        | Django     |
+| ------------  | -------    |
+| Python 2.7    | 1.11.22    |
+| Python 2.7    | 1.11.22    |
+| Python 2.7    | 1.9        |
+| Python 3.4.5  | 1.11.22    |
+| Python 3.4.5  | 1.11.22    |
+| Python 3.4.5  | 1.9        |
+| Python 3.6.4  | 1.11.22    |
+| Python 3.6.4  | 1.11.22    |
+| Python 3.6.4  | 1.9        |
+| Python 3.10.4 | 3.2.13 LTS |
 | Python 3.10.4 | 4.0.5      |
 
 ## How to Test
@@ -1086,10 +1086,18 @@ Moesif has validated this middleware against the following combinations of Pytho
 3. Run `pip install Django` and then run `pip install moesifdjango`.
 4. Add your [Moesif Application ID](#get-your-moesif-application-id) to `tests/settings.py`.
 5. From terminal, navigate to the root directory of the middleware tests `tests/`.
-   
+
    a. Run `python manage.py test` if you are using Django 1.10 or newer.
-   
+
    b. Run `python manage.py test middleware_pre19_tests` if you are using Django 1.9 or older.
+
+## Troubleshoot
+
+On MacOS, with `gunicorn`, it is possible to encounter this error: "in progress in another thread when fork() was called". Solution is to add `--preload` option when launching `gunicorn` like below.
+
+```bash
+gunicorn myapp.wsgi:application --bind 127.0.0.1:8000 --preload
+```
 
 ## Explore Other Integrations
 

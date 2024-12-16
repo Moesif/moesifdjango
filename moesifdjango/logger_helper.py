@@ -49,7 +49,7 @@ class LoggerHelper:
             req_headers = {}
 
         if debug:
-            logger.info("about to print what is in meta %d " % len(request.META))
+            logger.info("checking request meta %d " % len(request.META))
             for x in request.META:
                 logger.info(f'{x}: {request.META[x]}')
             logger.info("about to print headers %d " % len(req_headers))

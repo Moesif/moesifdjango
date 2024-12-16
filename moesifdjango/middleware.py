@@ -52,7 +52,7 @@ class moesif_middleware:
         self.client = MoesifAPIClient(self.middleware_settings.get('APPLICATION_ID'))
         self.logger_helper = LoggerHelper()
         Configuration.BASE_URI = self.logger_helper.get_configuration_uri(self.middleware_settings, 'BASE_URI', 'LOCAL_MOESIF_BASEURL')
-        Configuration.version = 'moesifdjango-python/2.3.11'
+        Configuration.version = 'moesifdjango-python/2.3.12'
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
@@ -167,9 +167,10 @@ class moesif_middleware:
         transaction_id = None
 
         try:
-            request._mo_body = request.body
-            request._stream = BytesIO(request.body)
-            request._read_started = False
+            if self.LOG_BODY:
+                request._mo_body = request.body
+                request._stream = BytesIO(request.body)
+                request._read_started = False
         except:
             request._mo_body = None
 
