@@ -6,6 +6,7 @@ import random
 import math
 import queue
 import logging
+import json
 from django.conf import settings
 from django.utils import timezone
 from moesifapi.moesif_api_client import *
@@ -21,7 +22,7 @@ from .update_companies import *
 from io import BytesIO
 from moesifpythonrequest.start_capture.start_capture import StartCapture
 from datetime import datetime, timedelta
-from moesifpythonrequest.app_config.app_config import AppConfig
+from moesifapi.app_config.app_config import AppConfig
 from .parse_body import ParseBody
 from .update_companies import Company
 from .update_users import User
@@ -46,7 +47,7 @@ class MoesifMiddlewarePre19(object):
         self.client = MoesifAPIClient(self.middleware_settings.get('APPLICATION_ID'))
         self.logger_helper = LoggerHelper()
         Configuration.BASE_URI = self.logger_helper.get_configuration_uri(self.middleware_settings, 'BASE_URI', 'LOCAL_MOESIF_BASEURL')
-        Configuration.version = 'moesifdjango-python/2.3.12'
+        Configuration.version = 'moesifdjango-python/2.3.13'
         if settings.MOESIF_MIDDLEWARE.get('CAPTURE_OUTGOING_REQUESTS', False):
             try:
                 if self.DEBUG:
@@ -226,7 +227,7 @@ class MoesifMiddlewarePre19(object):
 
         # Create random percentage
         random_percentage = random.random() * 100
-        self.sampling_percentage = self.app_config.get_sampling_percentage(event_model, self.config, user_id, company_id)
+        self.sampling_percentage = self.app_config.get_sampling_percentage(event_model, json.loads(self.config.raw_body), user_id, company_id)
         if self.sampling_percentage >= random_percentage:
             event_model.weight = 1 if self.sampling_percentage == 0 else math.floor(100 / self.sampling_percentage)
             try:
