@@ -1,5 +1,5 @@
 from datetime import datetime
-from moesifpythonrequest.app_config.app_config import AppConfig
+from moesifapi.app_config.app_config import AppConfig
 import logging
 
 logger = logging.getLogger(__name__)

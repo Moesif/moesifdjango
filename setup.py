@@ -28,7 +28,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='2.3.12',
+    version='2.3.13',
 
     description='Moesif Middleware for Python Django',
     long_description=long_description,
@@ -83,7 +83,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['requests', 'jsonpickle', 'python-dateutil', 'isodatetimehandler', 'moesifapi>=1.5.3',
-                      'moesifpythonrequest>=0.3.4', 'apscheduler', 'nose'
+                      'moesifpythonrequest>=0.3.5', 'apscheduler', 'nose'
                       ],
 
     # List additional groups of dependencies here (e.g. development
